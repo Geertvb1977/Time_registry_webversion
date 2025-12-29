@@ -1,0 +1,14 @@
+<!Doctype html>
+<html>
+<head>
+    <title>Registreer je bedrijf</title>
+</head>
+<body>
+<h2>Registreer je bedrijf</h2>
+<form method="post">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit">Account aanmaken</button>
+</form>
+</body>
+</html>
