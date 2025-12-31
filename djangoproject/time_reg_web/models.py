@@ -4,6 +4,7 @@ Each company (tenant) has its own set of
 users, customers, projects, and time entries.
 """
 from django.db import models
+from django.db.models import Max
 from django.contrib.auth.models import User
 from django.db.models.signals import post_save
 from django.dispatch import receiver
@@ -50,9 +51,20 @@ class UserProfile(models.Model):
 class Customer(models.Model):
     """ Model voor klanten binnen een bedrijf """
     company = models.ForeignKey(Company, on_delete=models.CASCADE, related_name='customers')
-    customer_id = models.IntegerField(unique=True)
+    customer_id = models.IntegerField()
     customer_name = models.CharField(max_length=255)
     customer_email = models.EmailField()
+
+    class Meta:
+        unique_together = ('company', 'customer_id')
+
+    def save(self, *args, **kwargs):
+        if not self.customer_id:
+            last_id = Customer.objects.filter(
+                company=self.company
+            ).aggregate(Max('customer_id'))['customer_id__max']
+            self.customer_id = (last_id or 0) + 1
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return self.customer_name

@@ -36,7 +36,7 @@ class DashboardView(TenantObjectMixin, ListView):
 class CustomerCreateView(TenantObjectMixin, CreateView):
     model = Customer
     # Gebaseerd op jouw models.py: customer_name, customer_id, customer_email
-    fields = ['customer_id', 'customer_name', 'customer_email']
+    fields = ['customer_name', 'customer_email']
     template_name = 'dashboard/customer_form.html'
     success_url = '/'
 
