@@ -6,6 +6,8 @@ from django.views.generic import ListView, CreateView, UpdateView
 from django.db import transaction
 from django.contrib.auth.models import User
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.utils import timezone
+from django.shortcuts import get_object_or_404
 
 from django.contrib.auth import logout
 from django.urls import reverse_lazy
@@ -22,8 +24,10 @@ class DashboardView(TenantObjectMixin, ListView):
     template_name = 'dashboard/index.html'
     context_object_name = 'projects'
 
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        context['active_timer'] = TimeRegistry.objects.filter(user=self.request.user, end_time__isnull=True).first()
         # Filter klanten op het bedrijf van de ingelogde gebruiker
         if self.request.user.is_authenticated:
             context['customers'] = Customer.objects.filter(
@@ -45,7 +49,7 @@ class CustomerCreateView(TenantObjectMixin, CreateView):
 class ProjectCreateView(TenantObjectMixin, CreateView):
     model = Project
     # Gebaseerd op jouw models.py: customer, project_id, project_name, project_description, start_date, end_date, is_active
-    fields = ['customer', 'project_id', 'project_name', 'project_description', 'start_date', 'end_date', 'is_active']
+    fields = ['customer', 'project_name', 'project_description', 'start_date', 'end_date', 'is_active']
     template_name = 'dashboard/project_form.html'
     success_url = '/'
 
@@ -89,11 +93,50 @@ class RegisterCompanyView(View):
 
 
 # 5. Uitloggen
-
-class LogoutView(RedirectView):
+class LoginView(RedirectView):
 
     url = reverse_lazy('login')
 
     def get(self, request, *args, **kwargs):
         logout(request)
         return super().get(request, *args, **kwargs)
+
+
+# View om de timer te starten
+def start_timer(request):
+    if request.method == 'POST':
+        # We gebruiken de database 'id' uit het <select> element
+        project_pk = request.POST.get('project')
+        if project_pk:
+            project = get_object_or_404(Project, pk=project_pk, company=request.user.profile.company)
+
+            # Voorkom dubbele actieve timers
+            active_timer = TimeRegistry.objects.filter(
+                user=request.user,
+                end_time__isnull=True
+            ).exists()
+
+            if not active_timer:
+                TimeRegistry.objects.create(
+                    user=request.user,
+                    project=project,
+                    company=request.user.profile.company,
+                    description=request.POST.get('description'),
+                    start_time=timezone.now()
+                )
+    return redirect('dashboard')
+
+
+# View om de timer te stoppen
+def stop_timer(request, timer_id):
+    # Alleen stoppen via POST voor de veiligheid (tegen 405 errors)
+    if request.method == 'POST':
+        timer = get_object_or_404(TimeRegistry, id=timer_id, user=request.user)
+        timer.end_time = timezone.now()
+        timer.description = request.POST.get('description')
+        # Automatische berekening van uren
+        # diff = timer.end_time - timer.start_time
+        # timer.duration = diff.total_seconds() / 3600
+
+        timer.save()
+    return redirect('dashboard')

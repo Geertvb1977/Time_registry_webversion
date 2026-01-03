@@ -44,7 +44,7 @@ class UserProfile(models.Model):
         return f"{self.user.username} - {self.company.name if self.company else 'Geen bedrijf'}"
 
 # 3. Bestaande modellen aanpassen (Klant, Project, etc.)
-# VOEG DIT VELD TOE AAN JE BESTAANDE MODELLEN:
+
 # company = models.ForeignKey(Company, on_delete=models.CASCADE)
 
 
@@ -74,12 +74,23 @@ class Project(models.Model):
     """ Model voor projecten binnen een bedrijf """
     company = models.ForeignKey(Company, on_delete=models.CASCADE, related_name='projects')
     customer = models.ForeignKey(Customer, on_delete=models.CASCADE, related_name='projects')
-    project_id = models.IntegerField(unique=True)
+    project_id = models.IntegerField()
     project_name = models.CharField(max_length=255)
     project_description = models.TextField(blank=True)
     start_date = models.DateField()
     end_date = models.DateField(null=True, blank=True)
     is_active = models.BooleanField(default=True)
+
+    class Meta:
+        unique_together = ('company', 'project_id')
+
+    def save(self, *args, **kwargs):
+        if not self.project_id:
+            last_id = Project.objects.filter(
+                company=self.company
+            ).aggregate(Max('project_id'))['project_id__max']
+            self.project_id = (last_id or 0) + 1
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return self.project_name
@@ -90,8 +101,8 @@ class TimeRegistry(models.Model):
     company = models.ForeignKey(Company, on_delete=models.CASCADE, related_name='time_registrys')
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='time_registrys')
     project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name='time_registrys')
-    start_time = models.DateField()
-    end_time = models.DateField()
+    start_time = models.DateTimeField()
+    end_time = models.DateTimeField(null=True, blank=True)
     description = models.TextField(blank=True)
 
     def __str__(self):
