@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Export - {{ user.profile.company.name }}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body class="bg-gray-50 min-h-screen">
+
+    <!-- Navigatie -->
+    <nav class="bg-white shadow-sm border-b border-gray-200">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex justify-between items-center">
+            <div class="flex items-center">
+                <a href="/" class="text-xl font-bold text-blue-600 hover:opacity-80 transition-opacity">
+                    <i class="fas fa-arrow-left mr-2"></i> Terug naar Dashboard
+                </a>
+            </div>
+            <div class="font-medium text-gray-700">
+                    {{ user.profile.company.name }}
+            </div>
+        </div>
+    </nav>
+
+    <main class="max-w-3xl mx-auto py-12 px-4">
+        <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+            <div class="p-8 bg-blue-600 text-white">
+                <h1 class="text-2xl font-bold">Uren Rapporten</h1>
+                <p class="text-blue-100 mt-1">Selecteer filters voor je Excel export.</p>
+            </div>
+            
+            <form method="POST" class="p-8 space-y-6">
+                {% csrf_token %}
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Datums -->
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 uppercase mb-2">Begindatum</label>
+                        <input type="date" name="start_date" class="w-full rounded-lg border-gray-300 focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 uppercase mb-2">Einddatum</label>
+                        <input type="date" name="end_date" class="w-full rounded-lg border-gray-300 focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Klant & Project -->
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 uppercase mb-2">Filter op Klant</label>
+                        <select name="customer" class="w-full rounded-lg border-gray-300 text-sm">
+                            <option value="">Alle Klanten</option>
+                            {% for customer in customers %}
+                                <option value="{{ customer.id }}">{{ customer.customer_name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 uppercase mb-2">Filter op Project</label>
+                        <select name="project" class="w-full rounded-lg border-gray-300 text-sm">
+                            <option value="">Alle Projecten</option>
+                            {% for project in projects %}
+                                <option value="{{ project.id }}">
+                                    {{ project.project_name }} ({{ project.customer.customer_name }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+
+                <div class="pt-6 border-t">
+                    <button type="submit" class="w-full bg-blue-600 text-white py-4 rounded-xl font-bold hover:bg-blue-700 shadow-lg shadow-blue-100 transition-all flex items-center justify-center">
+                        <i class="fas fa-file-excel mr-2 text-xl"></i> Genereer Excel Bestand
+                    </button>
+                    <p class="text-center text-[10px] text-gray-400 mt-4">
+                        * Indien geen filters worden geselecteerd, worden alle uren van jouw bedrijf geëxporteerd.
+                    </p>
+                </div>
+            </form>
+        </div>
+    </main>
+
+</body>
+</html>

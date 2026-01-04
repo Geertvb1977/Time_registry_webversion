@@ -14,4 +14,5 @@ urlpatterns = [
     path('project/new/', views.ProjectCreateView.as_view(), name='project_create'),
     path('timer/start/', views.start_timer, name='start_timer'),
     path('timer/stop/<int:timer_id>/', views.stop_timer, name='stop_timer'),
+    path('export/', views.ExportView.as_view(), name='export'),
 ]

@@ -8,10 +8,11 @@ from django.contrib.auth.models import User
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.utils import timezone
 from django.shortcuts import get_object_or_404
-
+from django.http import HttpResponse
 from django.contrib.auth import logout
 from django.urls import reverse_lazy
 from django.views.generic.base import RedirectView
+import openpyxl
 
 from .models import Company, UserProfile, Customer, Project, TimeRegistry
 from .mixins import TenantObjectMixin
@@ -61,6 +62,86 @@ class ProjectCreateView(TenantObjectMixin, CreateView):
                 company=self.request.user.profile.company
             )
         return form
+
+
+class ExportView(TenantObjectMixin, View):
+    """
+    View voor het filteren en exporteren van tijdregistraties naar Excel.
+    We gebruiken 'View' in plaats van 'CreateView' om queryset-errors te voorkomen.
+    """
+    template_name = 'dashboard/export.html'
+
+    def get(self, request):
+        """Toon de exportpagina met de filteropties."""
+        company = request.user.profile.company
+        customers = Customer.objects.filter(company=company)
+        projects = Project.objects.filter(company=company)
+
+        return render(request, self.template_name, {
+            'customers': customers,
+            'projects': projects
+        })
+
+    def post(self, request):
+        """Verwerk de filters en genereer het Excel-bestand."""
+        company = request.user.profile.company
+
+        # Haal filters op uit het formulier
+        start_date = request.POST.get('start_date')
+        end_date = request.POST.get('end_date')
+        customer_id = request.POST.get('customer')
+        project_id = request.POST.get('project')
+
+        # Begin met alle registraties van het bedrijf
+        entries = TimeRegistry.objects.filter(company=company).order_by('start_time')
+
+        # Pas filters toe op de queryset
+        if start_date:
+            entries = entries.filter(start_time__date__gte=start_date)
+        if end_date:
+            entries = entries.filter(start_time__date__lte=end_date)
+        if customer_id:
+            entries = entries.filter(project__customer_id=customer_id)
+        if project_id:
+            entries = entries.filter(project_id=project_id)
+
+        # Excel bestand aanmaken
+        wb = openpyxl.Workbook()
+        ws = wb.active
+        ws.title = "Urenexport"
+
+        # Kolomkoppen
+        headers = ['Datum', 'Klant', 'Project', 'Medewerker', 'Start', 'Eind', 'Uren', 'Omschrijving']
+        ws.append(headers)
+
+        # Data invullen
+        for entry in entries:
+            # Bereken duur alleen als er een eindtijd is
+            duration = 0
+            if entry.end_time:
+                diff = entry.end_time - entry.start_time
+                duration = round(diff.total_seconds() / 3600, 2)
+
+            ws.append([
+                entry.start_time.strftime('%d-%m-%Y') if entry.start_time else "",
+                entry.project.customer.customer_name,
+                entry.project.project_name,
+                entry.user.username,
+                entry.start_time.strftime('%H:%M') if entry.start_time else "",
+                entry.end_time.strftime('%H:%M') if entry.end_time else "Lopend",
+                duration,
+                entry.description
+            ])
+
+        # Response voorbereiden voor download
+        filename = f"export_{timezone.now().strftime('%Y%m%d_%H%M')}.xlsx"
+        response = HttpResponse(
+            content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        )
+        response['Content-Disposition'] = f'attachment; filename={filename}'
+
+        wb.save(response)
+        return response
 
 
 # 4. Registratie van een nieuw bedrijf (Tenant)
@@ -134,9 +215,5 @@ def stop_timer(request, timer_id):
         timer = get_object_or_404(TimeRegistry, id=timer_id, user=request.user)
         timer.end_time = timezone.now()
         timer.description = request.POST.get('description')
-        # Automatische berekening van uren
-        # diff = timer.end_time - timer.start_time
-        # timer.duration = diff.total_seconds() / 3600
-
         timer.save()
     return redirect('dashboard')
