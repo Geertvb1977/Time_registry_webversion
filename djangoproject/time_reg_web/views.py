@@ -64,38 +64,31 @@ class ProjectCreateView(TenantObjectMixin, CreateView):
         return form
 
 
+# 4. Export View (Directe Download naar Excel)
 class ExportView(TenantObjectMixin, View):
-    """
-    View voor het filteren en exporteren van tijdregistraties naar Excel.
-    We gebruiken 'View' in plaats van 'CreateView' om queryset-errors te voorkomen.
-    """
     template_name = 'dashboard/export.html'
 
     def get(self, request):
-        """Toon de exportpagina met de filteropties."""
         company = request.user.profile.company
         customers = Customer.objects.filter(company=company)
         projects = Project.objects.filter(company=company)
-
+        
         return render(request, self.template_name, {
             'customers': customers,
             'projects': projects
         })
 
     def post(self, request):
-        """Verwerk de filters en genereer het Excel-bestand."""
         company = request.user.profile.company
-
-        # Haal filters op uit het formulier
+        
+        # Filters ophalen
         start_date = request.POST.get('start_date')
         end_date = request.POST.get('end_date')
         customer_id = request.POST.get('customer')
         project_id = request.POST.get('project')
 
-        # Begin met alle registraties van het bedrijf
+        # Queryset filteren
         entries = TimeRegistry.objects.filter(company=company).order_by('start_time')
-
-        # Pas filters toe op de queryset
         if start_date:
             entries = entries.filter(start_time__date__gte=start_date)
         if end_date:
@@ -105,18 +98,15 @@ class ExportView(TenantObjectMixin, View):
         if project_id:
             entries = entries.filter(project_id=project_id)
 
-        # Excel bestand aanmaken
+        # Excel genereren
         wb = openpyxl.Workbook()
         ws = wb.active
-        ws.title = "Urenexport"
+        ws.title = "Uren Export"
 
-        # Kolomkoppen
-        headers = ['Datum', 'Klant', 'Project', 'Medewerker', 'Start', 'Eind', 'Uren', 'Omschrijving']
+        headers = ['Datum', 'Klant', 'Project', 'Gebruiker', 'Start', 'Eind', 'Duur (u)', 'Omschrijving']
         ws.append(headers)
 
-        # Data invullen
         for entry in entries:
-            # Bereken duur alleen als er een eindtijd is
             duration = 0
             if entry.end_time:
                 diff = entry.end_time - entry.start_time
@@ -133,15 +123,16 @@ class ExportView(TenantObjectMixin, View):
                 entry.description
             ])
 
-        # Response voorbereiden voor download
-        filename = f"export_{timezone.now().strftime('%Y%m%d_%H%M')}.xlsx"
+        # Response voor download
+        filename = f"urenexport_{timezone.now().strftime('%Y%m%d_%H%M')}.xlsx"
         response = HttpResponse(
             content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
         )
-        response['Content-Disposition'] = f'attachment; filename={filename}'
-
+        response['Content-Disposition'] = f'attachment; filename="{filename}"'
         wb.save(response)
+        
         return response
+
 
 
 # 4. Registratie van een nieuw bedrijf (Tenant)
