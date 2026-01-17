@@ -64,7 +64,8 @@ class ProjectCreateView(TenantObjectMixin, CreateView):
         return form
 
 
-# 4. Export View (Directe Download naar Excel)
+
+# 4. Export View (Directe Download naar Excel met 5-minuten afronding en totaaltelling)
 class ExportView(TenantObjectMixin, View):
     template_name = 'dashboard/export.html'
 
@@ -106,11 +107,20 @@ class ExportView(TenantObjectMixin, View):
         headers = ['Datum', 'Klant', 'Project', 'Gebruiker', 'Start', 'Eind', 'Duur (u)', 'Omschrijving']
         ws.append(headers)
 
+        total_duration = 0  # Variabele voor de totaaltelling
+
         for entry in entries:
             duration = 0
             if entry.end_time:
-                diff = entry.end_time - entry.start_time
-                duration = round(diff.total_seconds() / 3600, 2)
+                # Bereken verschil in seconden
+                total_seconds = (entry.end_time - entry.start_time).total_seconds()
+                
+                # Afronden op 5 minuten (300 seconden)
+                rounded_seconds = round(total_seconds / 300) * 300
+                
+                # Omzetten naar uren voor de kolom
+                duration = round(rounded_seconds / 3600, 2)
+                total_duration += duration  # Voeg toe aan totaal
 
             ws.append([
                 entry.start_time.strftime('%d-%m-%Y') if entry.start_time else "",
@@ -122,6 +132,13 @@ class ExportView(TenantObjectMixin, View):
                 duration,
                 entry.description
             ])
+
+        # Voeg een lege regel toe voor de overzichtelijkheid
+        ws.append([])
+        
+        # Voeg de totaalregel toe
+        # We plaatsen 'TOTAAL' in de kolom van de medewerker/eindtijd en de som in de duur-kolom
+        ws.append(['', '', '', '', '', 'TOTAAL:', round(total_duration, 2), ''])
 
         # Response voor download
         filename = f"urenexport_{timezone.now().strftime('%Y%m%d_%H%M')}.xlsx"
@@ -135,7 +152,7 @@ class ExportView(TenantObjectMixin, View):
 
 
 
-# 4. Registratie van een nieuw bedrijf (Tenant)
+# 5. Registratie van een nieuw bedrijf (Tenant)
 class RegisterCompanyView(View):
     template_name = 'registration/register_company.html'
 
@@ -164,7 +181,7 @@ class RegisterCompanyView(View):
         return render(request, self.template_name, {'form': form})
 
 
-# 5. Uitloggen
+# 6. Uitloggen
 class LoginView(RedirectView):
 
     url = reverse_lazy('login')
@@ -174,7 +191,7 @@ class LoginView(RedirectView):
         return super().get(request, *args, **kwargs)
 
 
-# View om de timer te starten
+# 1.1 View om de timer te starten
 def start_timer(request):
     if request.method == 'POST':
         # We gebruiken de database 'id' uit het <select> element
@@ -199,7 +216,7 @@ def start_timer(request):
     return redirect('dashboard')
 
 
-# View om de timer te stoppen
+# 1.2 View om de timer te stoppen
 def stop_timer(request, timer_id):
     # Alleen stoppen via POST voor de veiligheid (tegen 405 errors)
     if request.method == 'POST':
