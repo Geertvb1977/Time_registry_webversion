@@ -9,25 +9,29 @@ from .models import Company, UserProfile
 
 
 # 1. Het Formulier
+# 1. Het Formulier met wachtwoordherhaling
 class RegistrationForm(forms.Form):
-    # Bedrijfsgegevens
     company_name = forms.CharField(
-        max_length=100,
+        max_length=100, 
         label="Bedrijfsnaam",
-        widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Bijv. Mijn Bedrijf BV'})
+        widget=forms.TextInput(attrs={'placeholder': 'Bijv. Mijn Bedrijf BV'})
     )
-
-    # Gebruikersgegevens
-    username = forms.CharField(
-        max_length=150,
-        label="Gebruikersnaam",
-        widget=forms.TextInput(attrs={'class': 'form-control'})
-    )
-    email = forms.EmailField(
-        label="E-mailadres",
-        widget=forms.EmailInput(attrs={'class': 'form-control'})
-    )
+    username = forms.CharField(max_length=150, label="Gebruikersnaam")
+    email = forms.EmailField(label="E-mailadres")
     password = forms.CharField(
-        widget=forms.PasswordInput(attrs={'class': 'form-control'}),
+        widget=forms.PasswordInput(),
         label="Wachtwoord"
     )
+    password_confirm = forms.CharField(
+        widget=forms.PasswordInput(),
+        label="Bevestig Wachtwoord"
+    )
+
+    def clean(self):
+        cleaned_data = super().clean()
+        password = cleaned_data.get("password")
+        password_confirm = cleaned_data.get("password_confirm")
+
+        if password and password_confirm and password != password_confirm:
+            raise forms.ValidationError("De wachtwoorden komen niet overeen.")
+        return cleaned_data

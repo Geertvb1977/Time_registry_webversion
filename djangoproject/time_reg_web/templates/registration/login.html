@@ -1,34 +1,118 @@
 <!DOCTYPE html>
+
 <html lang="nl">
 <head>
     <meta charset="UTF-8">
-    <title>Inloggen - TimeTrack</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TimeTrack - Toegang</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
-<body class="bg-gray-100 h-screen flex items-center justify-center">
-    <div class="max-w-md w-full bg-white rounded-xl shadow-lg p-8">
-        <h2 class="text-2xl font-bold text-center text-gray-800 mb-8">Inloggen</h2>
-        
-        <form method="post">
-            {% csrf_token %}
-            <div class="space-y-4">
-                <div>
-                    <label class="block text-sm font-medium text-gray-700">Gebruikersnaam</label>
-                    <input type="text" name="username" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border">
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700">Wachtwoord</label>
-                    <input type="password" name="password" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border">
-                </div>
-                <button type="submit" class="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition">
-                    Inloggen
-                </button>
-            </div>
-        </form>
-        
-        <p class="mt-4 text-center text-sm text-gray-600">
-            Nog geen account voor je bedrijf? <a href="{% url 'register_company' %}" class="text-blue-600">Registreer hier</a>.
-        </p>
+<body class="bg-gray-100 min-h-screen flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8">
+
+    <div class="sm:mx-auto sm:w-full sm:max-w-md text-center mb-8">
+        <h1 class="text-4xl font-extrabold text-blue-600 tracking-tight">TimeTrack</h1>
+        <p class="mt-2 text-base text-gray-500 text-balance">Eén platform voor al je tijdregistratie en projectbeheer.</p>
     </div>
+
+    <div class="max-w-6xl mx-auto w-full">
+        <div class="bg-white rounded-2xl shadow-xl overflow-hidden flex flex-col md:flex-row border border-gray-200">
+            
+            <!-- LINKER KOLOM: INLOGGEN -->
+            <div class="w-full md:w-1/2 p-8 lg:p-12 bg-gray-50 border-b md:border-b-0 md:border-r border-gray-200">
+                <div class="h-full flex flex-col justify-center">
+                    <div class="mb-8">
+                        <h2 class="text-2xl font-bold text-gray-900 mb-2">Inloggen</h2>
+                        <p class="text-gray-600 text-sm">Welkom terug! Voer je gegevens in.</p>
+                    </div>
+
+                    <form method="post" action="{% url 'login' %}" class="space-y-5">
+                        {% csrf_token %}
+                        <!-- NIEUW: Bedrijfsnaam bij login -->
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700">Bedrijfsnaam</label>
+                            <input type="text" name="company_name_login" required 
+                                class="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+                                placeholder="Jouw Bedrijf">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700">Gebruikersnaam</label>
+                            <input type="text" name="username" required 
+                                class="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 outline-none transition-all">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700">Wachtwoord</label>
+                            <input type="password" name="password" required 
+                                class="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 outline-none transition-all">
+                        </div>
+                        <button type="submit" 
+                            class="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 focus:outline-none transition-colors">
+                            Inloggen
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- RECHTER KOLOM: REGISTREREN -->
+            <div class="w-full md:w-1/2 p-8 lg:p-12">
+                <div class="h-full flex flex-col justify-center">
+                    <div class="mb-8">
+                        <h2 class="text-2xl font-bold text-gray-900 mb-2">Nieuw Account</h2>
+                        <p class="text-gray-600 text-sm">Start direct met het beheren van je team.</p>
+                    </div>
+
+                    <form method="post" action="{% url 'register_company' %}" class="space-y-4">
+                        {% csrf_token %}
+                        
+                        {% if form.errors %}
+                        <div class="bg-red-50 p-3 rounded-lg text-red-600 text-xs mb-4">
+                            {% for error in form.non_field_errors %} <p>{{ error }}</p> {% endfor %}
+                            {% for field in form %}
+                                {% for error in field.errors %} <p><strong>{{ field.label }}:</strong> {{ error }}</p> {% endfor %}
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700">Bedrijfsnaam</label>
+                            <input type="text" name="company_name" required value="{{ form.company_name.value|default:'' }}"
+                                class="mt-1 block w-full px-4 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-green-500 focus:border-green-500 outline-none">
+                        </div>
+
+                        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                            <div>
+                                <label class="block text-sm font-semibold text-gray-700">Gebruikersnaam</label>
+                                <input type="text" name="username" required value="{{ form.username.value|default:'' }}"
+                                    class="mt-1 block w-full px-4 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-green-500 focus:border-green-500 outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-semibold text-gray-700">E-mailadres</label>
+                                <input type="email" name="email" required value="{{ form.email.value|default:'' }}"
+                                    class="mt-1 block w-full px-4 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-green-500 focus:border-green-500 outline-none">
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                            <div>
+                                <label class="block text-sm font-semibold text-gray-700">Wachtwoord</label>
+                                <input type="password" name="password" required 
+                                    class="mt-1 block w-full px-4 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-green-500 focus:border-green-500 outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-semibold text-gray-700">Herhaal Wachtwoord</label>
+                                <input type="password" name="password_confirm" required 
+                                    class="mt-1 block w-full px-4 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-green-500 focus:border-green-500 outline-none">
+                            </div>
+                        </div>
+
+                        <button type="submit"
+                            class="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-bold text-white bg-green-600 hover:bg-green-700 focus:outline-none transition-colors mt-4">
+                            Account & Bedrijf aanmaken
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>  
 </body>
 </html>

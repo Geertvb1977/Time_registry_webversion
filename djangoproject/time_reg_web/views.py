@@ -153,8 +153,9 @@ class ExportView(TenantObjectMixin, View):
 
 
 # 5. Registratie van een nieuw bedrijf (Tenant)
+#    De View die de gecombineerde pagina bedient
 class RegisterCompanyView(View):
-    template_name = 'registration/register_company.html'
+    template_name = 'registration/auth.html' # Gebruik de gecombineerde pagina
 
     def get(self, request):
         form = RegistrationForm()
@@ -163,22 +164,32 @@ class RegisterCompanyView(View):
     def post(self, request):
         form = RegistrationForm(request.POST)
         if form.is_valid():
-            with transaction.atomic():
-                company = Company.objects.create(
-                    name=form.cleaned_data['company_name']
-                )
-                user = User.objects.create_user(
-                    username=form.cleaned_data['username'],
-                    email=form.cleaned_data['email'],
-                    password=form.cleaned_data['password']
-                )
-                profile = user.profile
-                profile.company = company
-                profile.is_company_admin = True
-                profile.save()
-
-            return redirect('login')
-        return render(request, self.template_name, {'form': form})
+            try:
+                with transaction.atomic():
+                    # Maak het bedrijf aan
+                    company = Company.objects.create(
+                        name=form.cleaned_data['company_name']
+                    )
+                    
+                    # Maak de gebruiker aan
+                    user = User.objects.create_user(
+                        username=form.cleaned_data['username'],
+                        email=form.cleaned_data['email'],
+                        password=form.cleaned_data['password']
+                    )
+                    
+                    # Koppel profiel (aangemaakt via signal) aan bedrijf
+                    profile = user.profile
+                    profile.company = company
+                    profile.is_company_admin = True
+                    profile.save()
+                    
+                return redirect('login')
+            except Exception as e:
+                form.add_error(None, f"Er is een technische fout opgetreden: {e}")
+        
+        # Bij fouten: stuur terug naar de gecombineerde pagina met foutmeldingen
+        return render(request, self.template_name, {'form': form, 'active_tab': 'register'})
 
 
 # 6. Uitloggen
