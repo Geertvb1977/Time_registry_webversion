@@ -1,0 +1,24 @@
+# version: '3.9'
+
+
+services:
+  web:
+    build: .
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
+    restart: always
+
+  db:
+    image: postgres:15
+    volumes:
+      - postgres_data:/var/lib/postgresql/data/
+    environment:
+      POSTGRES_DB: timetracker
+      POSTGRES_USER: gezze
+      POSTGRES_PASSWORD: Gezze@min
+    restart: always 
+
+volumes:
+  postgres_data:

@@ -88,10 +88,10 @@ DATABASES = {
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'timetrack',
-        'USER': 'gezze',
-        'PASSWORD': 'Gezze@min',
-        'HOST': 'localhost',
+        'NAME': 'django_db',
+        'USER': 'django_user',
+        'PASSWORD': 'django_password',
+        'HOST': 'db',
         'PORT': '5432',
     }
 }
