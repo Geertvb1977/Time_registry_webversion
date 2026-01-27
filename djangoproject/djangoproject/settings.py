@@ -142,12 +142,8 @@ LOGIN_REDIRECT_URL = '/'
 LOGOUT_REDIRECT_URL = '/accounts/login/'
 
 # Production security settings
-DEBUG = os.environ.get('DEBUG', 'True').lower() == 'true'
-
 if not DEBUG:
-    # Production settings
-    ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', 'localhost').split(',')
-    
+    # Production settings - read from environment variables
     CSRF_TRUSTED_ORIGINS = os.environ.get(
         'CSRF_TRUSTED_ORIGINS',
         'https://localhost'
@@ -159,4 +155,3 @@ if not DEBUG:
     SECURE_HSTS_SECONDS = 31536000
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
     SECURE_HSTS_PRELOAD = True
-    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
