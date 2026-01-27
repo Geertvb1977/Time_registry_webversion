@@ -4,6 +4,7 @@
 ## Get latest from https://github.com/github/gitignore/blob/main/VisualStudio.gitignore
 
 db.sqlite3
+.traefik_letsencrypt/
 
 # User-specific files
 *.rsuser
