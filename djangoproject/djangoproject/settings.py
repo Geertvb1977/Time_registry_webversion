@@ -28,6 +28,7 @@ SECRET_KEY = (
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.environ.get('DEBUG', 'False').lower() == 'true'
 
+
 ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', '*').split(',')
 
 
@@ -138,8 +139,12 @@ USE_TZ = True
 STATIC_URL = 'static/'
 
 # Authentication settings
-LOGIN_REDIRECT_URL = '/'
+LOGIN_REDIRECT_URL = 'select_company'
 LOGOUT_REDIRECT_URL = '/accounts/login/'
+# Na inloggen sturen we ze naar de selectie pagina. 
+# De selectie pagina bepaalt zelf wel of ze door mogen naar dashboard (zie hieronder) of moeten kiezen.
+
+
 
 # Production security settings
 if not DEBUG:
@@ -155,3 +160,14 @@ if not DEBUG:
     SECURE_HSTS_SECONDS = 31536000
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
     SECURE_HSTS_PRELOAD = True
+
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.vimexx.nl'
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER')
+EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD')
+DEFAULT_FROM_EMAIL = 'Bedrijfsnaam <noreply@eventaflow.eu>'
+
+# Belangrijk voor Traefik/HTTPS links in de mail:
+# USE_X_FORWARDED_HOST = True

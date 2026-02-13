@@ -15,6 +15,7 @@ class Company(models.Model):
     """ Model voor een bedrijf (tenant) """
     name = models.CharField(max_length=100, verbose_name="Bedrijfsnaam")
     created_at = models.DateTimeField(auto_now_add=True)
+    members = models.ManyToManyField(User, related_name='companies', blank=True)
 
     def __str__(self):
         return self.name
@@ -32,8 +33,11 @@ class UserProfile(models.Model):
         User, on_delete=models.CASCADE, related_name='profile'
     )
     company = models.ForeignKey(
-        Company, on_delete=models.CASCADE, related_name='employees',
-        null=True, blank=True
+        Company, 
+        on_delete=models.SET_NULL, 
+        null=True, 
+        blank=True, 
+        related_name='active_users'
     )
     is_company_admin = models.BooleanField(
         default=False,
@@ -41,7 +45,7 @@ class UserProfile(models.Model):
     )
 
     def __str__(self):
-        return f"{self.user.username} - {self.company.name if self.company else 'Geen bedrijf'}"
+        return f"Profiel van {self.user.username}"
 
 # 3. Bestaande modellen aanpassen (Klant, Project, etc.)
 

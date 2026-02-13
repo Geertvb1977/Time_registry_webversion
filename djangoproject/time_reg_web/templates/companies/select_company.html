@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Eventaflow - Toegang</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body class="bg-gray-100 min-h-screen flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8">
+    <div class="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+    <div class="sm:mx-auto sm:w-full sm:max-w-4xl">
+        <h2 class="mt-6 text-center text-3xl font-extrabold text-gray-900">
+            Kies je werkomgeving
+        </h2>
+        <p class="mt-2 text-center text-sm text-gray-600">
+            Selecteer een bedrijf om het dashboard te openen of start een nieuwe omgeving.
+        </p>
+    </div>
+
+    <div class="mt-10 sm:mx-auto sm:w-full sm:max-w-4xl px-4">
+        <!-- Grid Layout -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            
+            <!-- Loop door bestaande bedrijven -->
+            {% for company in companies %}
+            <a href="{% url 'switch_company' company.id %}" 
+               class="relative group bg-white p-6 focus-within:ring-2 focus-within:ring-inset focus-within:ring-blue-500 rounded-xl shadow-sm hover:shadow-md transition-all border border-gray-200 cursor-pointer flex flex-col items-center justify-center text-center h-48">
+                
+                <div class="h-12 w-12 rounded-full bg-blue-100 flex items-center justify-center mb-4 group-hover:bg-blue-600 transition-colors">
+                    <i class="fas fa-building text-blue-600 group-hover:text-white text-xl"></i>
+                </div>
+                
+                <h3 class="text-lg font-medium text-gray-900">
+                    {{ company.name }}
+                </h3>
+                
+                {% if user.profile.company == company %}
+                <span class="absolute top-3 right-3 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                    Actief
+                </span>
+                {% endif %}
+                
+                <span class="mt-2 text-sm text-gray-500">
+                    Ga naar dashboard <span aria-hidden="true">&rarr;</span>
+                </span>
+            </a>
+            {% endfor %}
+
+            <!-- De "Nieuw Bedrijf" kaart -->
+            <a href="{% url 'create_company' %}" 
+               class="relative group bg-gray-50 border-2 border-dashed border-gray-300 p-6 rounded-xl hover:border-blue-500 hover:bg-white transition-all cursor-pointer flex flex-col items-center justify-center text-center h-48">
+                
+                <div class="h-12 w-12 rounded-full bg-gray-100 flex items-center justify-center mb-4 group-hover:bg-blue-50 transition-colors">
+                    <i class="fas fa-plus text-gray-400 group-hover:text-blue-600 text-xl"></i>
+                </div>
+                
+                <h3 class="text-lg font-medium text-gray-900 group-hover:text-blue-600">
+                    Nieuw Bedrijf
+                </h3>
+                <p class="mt-1 text-sm text-gray-500">
+                    Registreer een nieuwe organisatie
+                </p>
+            </a>
+
+        </div>
+        
+        <div class="mt-8 text-center">
+             <a href="{% url 'login' %}" class="text-sm font-medium text-gray-600 hover:text-gray-900">
+                <i class="fas fa-sign-out-alt mr-1"></i> Uitloggen / Ander account
+            </a>
+        </div>
+    </div>
+</div>
+</body>
+</html>

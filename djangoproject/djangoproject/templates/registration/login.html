@@ -1,17 +1,16 @@
 <!DOCTYPE html>
-
 <html lang="nl">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TimeTrack - Toegang</title>
+    <title>Eventaflow - Toegang</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
 <body class="bg-gray-100 min-h-screen flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8">
 
     <div class="sm:mx-auto sm:w-full sm:max-w-md text-center mb-8">
-        <h1 class="text-4xl font-extrabold text-blue-600 tracking-tight">TimeTrack</h1>
+        <h1 class="text-4xl font-extrabold text-blue-600 tracking-tight">Eventaflow</h1>
         <p class="mt-2 text-base text-gray-500 text-balance">Eén platform voor al je tijdregistratie en projectbeheer.</p>
     </div>
 
@@ -28,15 +27,10 @@
 
                     <form method="post" action="{% url 'login' %}" class="space-y-5">
                         {% csrf_token %}
-                        <!-- NIEUW: Bedrijfsnaam bij login -->
+                        <!-- AANPASSING: Bedrijfsnaam veld is verwijderd. Eerst inloggen, daarna kiezen. -->
+                        
                         <div>
-                            <label class="block text-sm font-semibold text-gray-700">Bedrijfsnaam</label>
-                            <input type="text" name="company_name_login" required 
-                                class="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
-                                placeholder="Jouw Bedrijf">
-                        </div>
-                        <div>
-                            <label class="block text-sm font-semibold text-gray-700">Gebruikersnaam</label>
+                            <label class="block text-sm font-semibold text-gray-700">Gebruikersnaam / E-mail</label>
                             <input type="text" name="username" required 
                                 class="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 outline-none transition-all">
                         </div>
@@ -49,12 +43,18 @@
                             class="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 focus:outline-none transition-colors">
                             Inloggen
                         </button>
+                        <div class="mt-4 text-center">
+                            <a href="{% url 'password_reset' %}" class="text-sm text-blue-600 hover:text-blue-500 hover:underline">
+                                Wachtwoord vergeten?
+                            </a>
+                        </div>
                     </form>
                 </div>
             </div>
 
             <!-- RECHTER KOLOM: REGISTREREN -->
             <div class="w-full md:w-1/2 p-8 lg:p-12">
+                <!-- Dit deel kan blijven zoals het is, of je splitst het later op als je invite-only wilt werken -->
                 <div class="h-full flex flex-col justify-center">
                     <div class="mb-8">
                         <h2 class="text-2xl font-bold text-gray-900 mb-2">Nieuw Account</h2>
@@ -63,31 +63,23 @@
 
                     <form method="post" action="{% url 'register_company' %}" class="space-y-4">
                         {% csrf_token %}
+                        <!-- Form fields blijven hier staan voor nieuwe registraties -->
+                        <!-- ... bestaande registratie velden ... -->
                         
-                        {% if form.errors %}
-                        <div class="bg-red-50 p-3 rounded-lg text-red-600 text-xs mb-4">
-                            {% for error in form.non_field_errors %} <p>{{ error }}</p> {% endfor %}
-                            {% for field in form %}
-                                {% for error in field.errors %} <p><strong>{{ field.label }}:</strong> {{ error }}</p> {% endfor %}
-                            {% endfor %}
-                        </div>
-                        {% endif %}
-
-                        <div>
-                            <label class="block text-sm font-semibold text-gray-700">Bedrijfsnaam</label>
-                            <input type="text" name="company_name" required value="{{ form.company_name.value|default:'' }}"
-                                class="mt-1 block w-full px-4 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-green-500 focus:border-green-500 outline-none">
-                        </div>
+                        <!-- TIP VOOR DE MODEL: Zorg dat bij registratie: -->
+                        <!-- 1. User wordt gemaakt -->
+                        <!-- 3. user wordt toegevoegd aan company.members -->
+                        <!-- 4. user.profile.company wordt ingesteld op dit nieuwe bedrijf -->
 
                         <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
                             <div>
                                 <label class="block text-sm font-semibold text-gray-700">Gebruikersnaam</label>
-                                <input type="text" name="username" required value="{{ form.username.value|default:'' }}"
+                                <input type="text" name="username" required
                                     class="mt-1 block w-full px-4 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-green-500 focus:border-green-500 outline-none">
                             </div>
                             <div>
                                 <label class="block text-sm font-semibold text-gray-700">E-mailadres</label>
-                                <input type="email" name="email" required value="{{ form.email.value|default:'' }}"
+                                <input type="email" name="email" required
                                     class="mt-1 block w-full px-4 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-green-500 focus:border-green-500 outline-none">
                             </div>
                         </div>
@@ -107,7 +99,7 @@
 
                         <button type="submit"
                             class="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-bold text-white bg-green-600 hover:bg-green-700 focus:outline-none transition-colors mt-4">
-                            Account & Bedrijf aanmaken
+                            Account aanmaken
                         </button>
                     </form>
                 </div>

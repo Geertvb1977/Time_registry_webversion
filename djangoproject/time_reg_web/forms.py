@@ -2,9 +2,11 @@
 
 from django import forms
 from django.contrib.auth.models import User
+from django.contrib.auth.forms import PasswordResetForm
 from django.db import transaction
 from django.shortcuts import render, redirect
 from django.views import View
+from django.contrib.auth.forms import PasswordResetForm
 from .models import Company, UserProfile
 
 
@@ -35,3 +37,17 @@ class RegistrationForm(forms.Form):
         if password and password_confirm and password != password_confirm:
             raise forms.ValidationError("De wachtwoorden komen niet overeen.")
         return cleaned_data
+   
+class TailwindPasswordResetForm(PasswordResetForm):
+    """
+    We gebruiken het standaard Django formulier maar voegen 
+    Tailwind klassen toe aan het e-mailveld.
+    """
+    email = forms.EmailField(
+        label="E-mailadres",
+        max_length=254,
+        widget=forms.EmailInput(attrs={
+            'class': 'block w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-blue-500 focus:border-blue-500 shadow-sm',
+            'placeholder': 'uw@email.be'
+        })
+    )

@@ -6,10 +6,11 @@ from django.views.generic import ListView, CreateView, UpdateView
 from django.db import transaction
 from django.contrib.auth.models import User
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.contrib.auth.decorators import login_required
+from django.contrib.auth import logout
 from django.utils import timezone
 from django.shortcuts import get_object_or_404
 from django.http import HttpResponse
-from django.contrib.auth import logout
 from django.urls import reverse_lazy
 from django.views.generic.base import RedirectView
 import openpyxl
@@ -17,6 +18,7 @@ import openpyxl
 from .models import Company, UserProfile, Customer, Project, TimeRegistry
 from .mixins import TenantObjectMixin
 from .forms import RegistrationForm
+
 
 
 # 1. Het Dashboard (Hoofdpagina)
@@ -62,7 +64,6 @@ class ProjectCreateView(TenantObjectMixin, CreateView):
                 company=self.request.user.profile.company
             )
         return form
-
 
 
 # 4. Export View (Directe Download naar Excel met 5-minuten afronding en totaaltelling)
@@ -151,7 +152,6 @@ class ExportView(TenantObjectMixin, View):
         return response
 
 
-
 # 5. Registratie van een nieuw bedrijf (Tenant)
 #    De View die de gecombineerde pagina bedient
 class RegisterCompanyView(View):
@@ -190,6 +190,67 @@ class RegisterCompanyView(View):
         
         # Bij fouten: stuur terug naar de gecombineerde pagina met foutmeldingen
         return render(request, self.template_name, {'form': form, 'active_tab': 'register'})
+
+
+class CompanySelectionView(LoginRequiredMixin, ListView):
+    model = Company
+    template_name = 'companies/select_company.html'
+    context_object_name = 'companies'
+
+    def get_queryset(self):
+        # We halen nu alleen de bedrijven op waar de user LID van is
+        return self.request.user.companies.all()
+
+@login_required
+def switch_company(request, company_id):
+    # Check of het bedrijf bestaat EN of de user lid is (members)
+    # Dit is belangrijk voor de beveiliging!
+    company = get_object_or_404(Company, id=company_id, members=request.user)
+    
+    # Zet dit bedrijf als actief in het profiel
+    # Zorg dat je signalen of een save() methode hebt die het profiel aanmaakt als het niet bestaat
+    if not hasattr(request.user, 'profile'):
+        UserProfile.objects.create(user=request.user)
+        
+    request.user.profile.company = company
+    request.user.profile.save()
+    
+    return redirect('dashboard')
+
+class CompanyCreateView(LoginRequiredMixin, CreateView):
+    model = Company
+    fields = ['name'] # Pas aan naar jouw model
+    template_name = 'companies/create_company.html'
+    success_url = reverse_lazy('dashboard')
+    
+    def form_valid(self, form):
+        # Koppel de aanmaker direct aan het bedrijf
+        # company = form.save(commit=False)
+        # company.save()
+        
+        # Voeg user toe aan many-to-many en zet als actief in profiel
+        # company.users.add(self.request.user) 
+        # self.request.user.profile.company = company
+        # self.request.user.profile.save()
+        
+        try:
+            with transaction.atomic():
+                # Maak het bedrijf aan
+                company = Company.objects.create(
+                    name=form.cleaned_data['company_name']
+                )
+                
+                user = User.get()
+                # Koppel profiel (aangemaakt via signal) aan bedrijf
+                profile = user.profile
+                profile.company = company
+                profile.is_company_admin = True
+                profile.save()
+                    
+                return redirect('login')
+        except Exception as e:
+            form.add_error(None, f"Er is een technische fout opgetreden: {e}")
+        return super().form_valid(form)
 
 
 # 6. Uitloggen
@@ -236,3 +297,5 @@ def stop_timer(request, timer_id):
         timer.description = request.POST.get('description')
         timer.save()
     return redirect('dashboard')
+
+

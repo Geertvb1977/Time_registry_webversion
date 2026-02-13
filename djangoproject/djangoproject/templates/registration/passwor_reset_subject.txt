@@ -1,0 +1,11 @@
+{% load i18n %}{% autoescape off %}
+Hallo,
+
+Er is een wachtwoordherstel aangevraagd voor je account bij {{ user.profile.company.name }}.
+Klik op de link om je wachtwoord te wijzigen:
+
+{{ protocol }}://{{ domain }}{% url 'password_reset_confirm' uidb64=uid token=token %}
+
+Met vriendelijke groet,
+Team {{ user.profile.company.name }}
+{% endautoescape %}
