@@ -7,7 +7,7 @@ from django.db import transaction
 from django.contrib.auth.models import User
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.decorators import login_required
-from django.contrib.auth import logout
+from django.contrib.auth import logout, login
 from django.utils import timezone
 from django.shortcuts import get_object_or_404
 from django.http import HttpResponse
@@ -39,22 +39,31 @@ class DashboardView(TenantObjectMixin, ListView):
         return context
 
 
-# 2. Klanten Beheer (Aanmaken)
-class CustomerCreateView(TenantObjectMixin, CreateView):
+# 2. Klanten Beheer (Aanmaken) - Aangepast om handmatig company te koppelen
+class CustomerCreateView(LoginRequiredMixin, CreateView):
     model = Customer
-    # Gebaseerd op jouw models.py: customer_name, customer_id, customer_email
     fields = ['customer_name', 'customer_email']
     template_name = 'dashboard/customer_form.html'
-    success_url = '/'
+    success_url = reverse_lazy('eventaflow:dashboard')
 
+    def form_valid(self, form):
+        try:
+            with transaction.atomic():
+                # Koppel de klant aan het bedrijf van de huidige gebruiker
+                form.instance.company = self.request.user.profile.company
+                return super().form_valid(form)
+        except Exception as e:
+            form.add_error(None, f"Fout bij aanmaken klant: {e}")
+            return self.form_invalid(form)
 
+"""
 # 3. Projecten Beheer (Aanmaken)
 class ProjectCreateView(TenantObjectMixin, CreateView):
     model = Project
     # Gebaseerd op jouw models.py: customer, project_id, project_name, project_description, start_date, end_date, is_active
     fields = ['customer', 'project_name', 'project_description', 'start_date', 'end_date', 'is_active']
     template_name = 'dashboard/project_form.html'
-    success_url = '/'
+    success_url = reverse_lazy('eventaflow:dashboard')
 
     def get_form(self, form_class=None):
         form = super().get_form(form_class)
@@ -64,7 +73,33 @@ class ProjectCreateView(TenantObjectMixin, CreateView):
                 company=self.request.user.profile.company
             )
         return form
+"""
 
+# 3. Projecten Beheer (Aanmaken) - Aangepast om handmatig company te koppelen
+class ProjectCreateView(LoginRequiredMixin, CreateView):
+    model = Project
+    fields = ['customer', 'project_name', 'project_description', 'start_date', 'end_date', 'is_active']
+    template_name = 'dashboard/project_form.html'
+    success_url = reverse_lazy('eventaflow:dashboard')
+
+    def get_form(self, form_class=None):
+        form = super().get_form(form_class)
+        if self.request.user.is_authenticated:
+            # Zorg dat je alleen klanten van je eigen bedrijf ziet
+            form.fields['customer'].queryset = Customer.objects.filter(
+                company=self.request.user.profile.company
+            )
+        return form
+
+    def form_valid(self, form):
+        try:
+            with transaction.atomic():
+                # Koppel het project aan het bedrijf van de huidige gebruiker
+                form.instance.company = self.request.user.profile.company
+                return super().form_valid(form)
+        except Exception as e:
+            form.add_error(None, f"Fout bij aanmaken project: {e}")
+            return self.form_invalid(form)
 
 # 4. Export View (Directe Download naar Excel met 5-minuten afronding en totaaltelling)
 class ExportView(TenantObjectMixin, View):
@@ -152,44 +187,46 @@ class ExportView(TenantObjectMixin, View):
         return response
 
 
-# 5. Registratie van een nieuw bedrijf (Tenant)
-#    De View die de gecombineerde pagina bedient
-class RegisterCompanyView(View):
-    template_name = 'registration/auth.html' # Gebruik de gecombineerde pagina
-
-    def get(self, request):
-        form = RegistrationForm()
-        return render(request, self.template_name, {'form': form})
+# 5. NIEUW: Aparte View voor Gebruiker Registratie
+class RegisterUserView(View):
+    """Maakt alleen een User en UserProfile aan, logt in en stuurt door."""
+    template_name = 'registration/login.html' 
 
     def post(self, request):
-        form = RegistrationForm(request.POST)
-        if form.is_valid():
-            try:
-                with transaction.atomic():
-                    # Maak het bedrijf aan
-                    company = Company.objects.create(
-                        name=form.cleaned_data['company_name']
-                    )
-                    
-                    # Maak de gebruiker aan
-                    user = User.objects.create_user(
-                        username=form.cleaned_data['username'],
-                        email=form.cleaned_data['email'],
-                        password=form.cleaned_data['password']
-                    )
-                    
-                    # Koppel profiel (aangemaakt via signal) aan bedrijf
-                    profile = user.profile
-                    profile.company = company
-                    profile.is_company_admin = True
-                    profile.save()
-                    
-                return redirect('login')
-            except Exception as e:
-                form.add_error(None, f"Er is een technische fout opgetreden: {e}")
+        # Haal data uit de rechterkolom van login.html
+        username = request.POST.get('username')
+        email = request.POST.get('email')
+        password = request.POST.get('password')
+        password_confirm = request.POST.get('password_confirm')
         
-        # Bij fouten: stuur terug naar de gecombineerde pagina met foutmeldingen
-        return render(request, self.template_name, {'form': form, 'active_tab': 'register'})
+        # Basis validatie
+        if not all([username, email, password, password_confirm]):
+            return render(request, self.template_name, {'reg_error': 'Vul alle velden in.'})
+            
+        if password != password_confirm:
+            return render(request, self.template_name, {'reg_error': 'Wachtwoorden komen niet overeen.'})
+
+        if User.objects.filter(username=username).exists():
+            return render(request, self.template_name, {'reg_error': 'Deze gebruikersnaam is al bezet.'})
+
+        try:
+            with transaction.atomic():
+                # 1. Maak User aan
+                user = User.objects.create_user(
+                    username=username,
+                    email=email,
+                    password=password
+                )
+                # 2. Maak UserProfile aan (zonder company)
+                UserProfile.objects.get_or_create(user=user)
+                
+                # 3. Log in
+                login(request, user)
+                
+            # 4. Stuur door naar de bedrijfsselectie (die zal redirecten naar create_company)
+            return redirect('eventaflow:select_company')
+        except Exception as e:
+            return render(request, self.template_name, {'reg_error': f"Technisch probleem: {e}"})
 
 
 class CompanySelectionView(LoginRequiredMixin, ListView):
@@ -199,6 +236,15 @@ class CompanySelectionView(LoginRequiredMixin, ListView):
 
     def get_queryset(self):
         # We halen nu alleen de bedrijven op waar de user LID van is
+        return self.request.user.companies.all()
+
+
+class CompanySelectionView(LoginRequiredMixin, ListView):
+    model = Company
+    template_name = 'companies/select_company.html'
+    context_object_name = 'companies'
+
+    def get_queryset(self):
         return self.request.user.companies.all()
 
 @login_required
@@ -215,43 +261,44 @@ def switch_company(request, company_id):
     request.user.profile.company = company
     request.user.profile.save()
     
-    return redirect('dashboard')
+    return redirect('eventaflow:dashboard')
 
 class CompanyCreateView(LoginRequiredMixin, CreateView):
     model = Company
-    fields = ['name'] # Pas aan naar jouw model
+    fields = ['name']
     template_name = 'companies/create_company.html'
-    success_url = reverse_lazy('dashboard')
+    success_url = reverse_lazy('eventaflow:dashboard')
     
     def form_valid(self, form):
-        # Koppel de aanmaker direct aan het bedrijf
-        # company = form.save(commit=False)
-        # company.save()
-        
-        # Voeg user toe aan many-to-many en zet als actief in profiel
-        # company.users.add(self.request.user) 
-        # self.request.user.profile.company = company
-        # self.request.user.profile.save()
-        
         try:
             with transaction.atomic():
-                # Maak het bedrijf aan
-                company = Company.objects.create(
-                    name=form.cleaned_data['company_name']
-                )
+                # We halen de instance op van het formulier zonder deze direct naar de DB te schrijven
+                # Dit voorkomt dat we een ongeldig formulier proberen te saven
+                self.object = form.save() 
                 
-                user = User.get()
-                # Koppel profiel (aangemaakt via signal) aan bedrijf
-                profile = user.profile
-                profile.company = company
+                user = self.request.user
+                
+                # Koppel de gebruiker aan het zojuist aangemaakte bedrijf
+                self.object.members.add(user)
+                
+                # Update of maak het profiel aan
+                profile, created = UserProfile.objects.get_or_create(user=user)
+                profile.company = self.object
                 profile.is_company_admin = True
                 profile.save()
-                    
-                return redirect('login')
+                
+                # Omdat we een CreateView gebruiken en we self.object hebben gezet, 
+                # kunnen we de standaard redirect van Django gebruiken
+                return redirect(self.get_success_url())
+                
         except Exception as e:
-            form.add_error(None, f"Er is een technische fout opgetreden: {e}")
-        return super().form_valid(form)
+            form.add_error(None, f"Fout bij aanmaken bedrijf: {e}")
+            return self.form_invalid(form)
 
+    def form_invalid(self, form):
+        # Voeg extra logging toe voor jezelf in de console als het formulier faalt
+        print(f"Form errors: {form.errors}")
+        return super().form_invalid(form)
 
 # 6. Uitloggen
 class LoginView(RedirectView):
@@ -285,7 +332,7 @@ def start_timer(request):
                     description=request.POST.get('description'),
                     start_time=timezone.now()
                 )
-    return redirect('dashboard')
+    return redirect('eventaflow:dashboard')
 
 
 # 1.2 View om de timer te stoppen
@@ -296,6 +343,4 @@ def stop_timer(request, timer_id):
         timer.end_time = timezone.now()
         timer.description = request.POST.get('description')
         timer.save()
-    return redirect('dashboard')
-
-
+    return redirect('eventaflow:dashboard')

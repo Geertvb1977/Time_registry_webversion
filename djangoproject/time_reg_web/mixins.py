@@ -14,7 +14,7 @@ class TenantObjectMixin(LoginRequiredMixin):
             # GEEN bedrijf? -> Forceer naar selectie/aanmaak pagina
             # Voorkom redirect loop als we al op de selectie pagina zitten
             if request.resolver_match.url_name not in ['select_company', 'create_company', 'switch_company']:
-                return redirect('select_company')
+                return redirect('eventaflow:select_company')
 
         return super().dispatch(request, *args, **kwargs)
 

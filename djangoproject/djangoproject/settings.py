@@ -65,10 +65,12 @@ ROOT_URLCONF = 'djangoproject.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        # Voeg dit pad toe zodat de centrale templates map gevonden wordt
+        'DIRS': [BASE_DIR / 'djangoproject' / 'templates'], 
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
+                'django.template.context_processors.debug', # Goed om erbij te hebben
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
@@ -139,7 +141,7 @@ USE_TZ = True
 STATIC_URL = 'static/'
 
 # Authentication settings
-LOGIN_REDIRECT_URL = 'select_company'
+LOGIN_REDIRECT_URL = 'eventaflow:select_company'
 LOGOUT_REDIRECT_URL = '/accounts/login/'
 # Na inloggen sturen we ze naar de selectie pagina. 
 # De selectie pagina bepaalt zelf wel of ze door mogen naar dashboard (zie hieronder) of moeten kiezen.

@@ -24,7 +24,7 @@
             
             <!-- Loop door bestaande bedrijven -->
             {% for company in companies %}
-            <a href="{% url 'switch_company' company.id %}" 
+            <a href="{% url 'eventaflow:switch_company' company.id %}" 
                class="relative group bg-white p-6 focus-within:ring-2 focus-within:ring-inset focus-within:ring-blue-500 rounded-xl shadow-sm hover:shadow-md transition-all border border-gray-200 cursor-pointer flex flex-col items-center justify-center text-center h-48">
                 
                 <div class="h-12 w-12 rounded-full bg-blue-100 flex items-center justify-center mb-4 group-hover:bg-blue-600 transition-colors">
@@ -48,7 +48,7 @@
             {% endfor %}
 
             <!-- De "Nieuw Bedrijf" kaart -->
-            <a href="{% url 'create_company' %}" 
+            <a href="{% url 'eventaflow:create_company' %}" 
                class="relative group bg-gray-50 border-2 border-dashed border-gray-300 p-6 rounded-xl hover:border-blue-500 hover:bg-white transition-all cursor-pointer flex flex-col items-center justify-center text-center h-48">
                 
                 <div class="h-12 w-12 rounded-full bg-gray-100 flex items-center justify-center mb-4 group-hover:bg-blue-50 transition-colors">

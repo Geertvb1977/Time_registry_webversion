@@ -61,7 +61,7 @@
                         <p class="text-gray-600 text-sm">Start direct met het beheren van je team.</p>
                     </div>
 
-                    <form method="post" action="{% url 'register_company' %}" class="space-y-4">
+                    <form method="post" action="{% url 'eventaflow:register_company' %}" class="space-y-4">
                         {% csrf_token %}
                         <!-- Form fields blijven hier staan voor nieuwe registraties -->
                         <!-- ... bestaande registratie velden ... -->
