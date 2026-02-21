@@ -56,24 +56,6 @@ class CustomerCreateView(LoginRequiredMixin, CreateView):
             form.add_error(None, f"Fout bij aanmaken klant: {e}")
             return self.form_invalid(form)
 
-"""
-# 3. Projecten Beheer (Aanmaken)
-class ProjectCreateView(TenantObjectMixin, CreateView):
-    model = Project
-    # Gebaseerd op jouw models.py: customer, project_id, project_name, project_description, start_date, end_date, is_active
-    fields = ['customer', 'project_name', 'project_description', 'start_date', 'end_date', 'is_active']
-    template_name = 'dashboard/project_form.html'
-    success_url = reverse_lazy('eventaflow:dashboard')
-
-    def get_form(self, form_class=None):
-        form = super().get_form(form_class)
-        # Filter de klanten-dropdown zodat je alleen eigen klanten ziet
-        if self.request.user.is_authenticated:
-            form.fields['customer'].queryset = Customer.objects.filter(
-                company=self.request.user.profile.company
-            )
-        return form
-"""
 
 # 3. Projecten Beheer (Aanmaken) - Aangepast om handmatig company te koppelen
 class ProjectCreateView(LoginRequiredMixin, CreateView):
@@ -100,6 +82,7 @@ class ProjectCreateView(LoginRequiredMixin, CreateView):
         except Exception as e:
             form.add_error(None, f"Fout bij aanmaken project: {e}")
             return self.form_invalid(form)
+
 
 # 4. Export View (Directe Download naar Excel met 5-minuten afronding en totaaltelling)
 class ExportView(TenantObjectMixin, View):
@@ -247,6 +230,7 @@ class CompanySelectionView(LoginRequiredMixin, ListView):
     def get_queryset(self):
         return self.request.user.companies.all()
 
+
 @login_required
 def switch_company(request, company_id):
     # Check of het bedrijf bestaat EN of de user lid is (members)
@@ -262,6 +246,7 @@ def switch_company(request, company_id):
     request.user.profile.save()
     
     return redirect('eventaflow:dashboard')
+
 
 class CompanyCreateView(LoginRequiredMixin, CreateView):
     model = Company
@@ -299,6 +284,7 @@ class CompanyCreateView(LoginRequiredMixin, CreateView):
         # Voeg extra logging toe voor jezelf in de console als het formulier faalt
         print(f"Form errors: {form.errors}")
         return super().form_invalid(form)
+
 
 # 6. Uitloggen
 class LoginView(RedirectView):

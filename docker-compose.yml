@@ -10,7 +10,10 @@ services:
       - .env
     depends_on:
       - db
+    extra_hosts:
+      - "mail.eventaflow.eu:185.220.172.65"
     restart: always
+
   db:
     image: postgres:15
     volumes:
@@ -31,6 +34,12 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
     command: --cleanup --interval 300
     restart: always
+
+networks:
+  default:
+    driver: bridge
+    driver_opts:
+      com.docker.network.driver.mtu: 1400
 
 volumes:
   postgres_data:
