@@ -11,6 +11,10 @@ services:
       - "traefik.http.routers.django.rule=Host(`${DOMAIN}`)"
       - "traefik.http.routers.django.entrypoints=websecure"
       - "traefik.http.routers.django.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.django.middlewares=django-headers"
+      - "traefik.http.middlewares.django-headers.headers.customrequestheaders.X-Forwarded-Proto=https"
+      - "traefik.http.middlewares.django-headers.headers.customrequestheaders.X-Forwarded-For=true"
+      - "traefik.http.middlewares.django-headers.headers.customrequestheaders.X-Forwarded-Host=${DOMAIN}"
       - "traefik.http.services.django.loadbalancer.server.port=8000"
     networks:
       - traefik_network

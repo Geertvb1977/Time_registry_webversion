@@ -13,11 +13,6 @@ https://docs.djangoproject.com/en/6.0/ref/settings/
 import os
 from pathlib import Path
 
-import ssl
-
-# Dit dwingt de SMTP backend om geen certificaatcontrole te doen
-EMAIL_SSL_CONTEXT = ssl._create_unverified_context()
-
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -63,12 +58,7 @@ MIDDLEWARE = [
 ]
 
 # Trust Traefik proxy headers
-# SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
-if not DEBUG:
-    # Zet deze op False als je geen HTTPS/Proxy (Traefik) gebruikt:
-    SECURE_SSL_REDIRECT = False 
-    SESSION_COOKIE_SECURE = False
-    CSRF_COOKIE_SECURE = False
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
 ROOT_URLCONF = 'djangoproject.urls'
 
@@ -88,20 +78,12 @@ TEMPLATES = [
         },
     },
 ]
-
 WSGI_APPLICATION = 'djangoproject.wsgi.application'
 
 
 # Database
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
-"""
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
-    }
-}
-"""
+
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
@@ -149,6 +131,7 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
 
 STATIC_URL = 'static/'
+STATIC_ROOT = BASE_DIR / 'djangoproject' / 'staticfiles'
 
 # Authentication settings
 LOGIN_REDIRECT_URL = 'eventaflow:select_company'
@@ -173,21 +156,14 @@ if not DEBUG:
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
     SECURE_HSTS_PRELOAD = True
 
-
-
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-EMAIL_HOST = 'mail.eventaflow.eu'
+EMAIL_HOST = 'smtp.vimexx.nl'
 EMAIL_PORT = 587
-# EMAIL_PORT = 465
-# EMAIL_PORT = 995
-EMAIL_USE_SSL = False
-# EMAIL_USE_SSL = True
 EMAIL_USE_TLS = True
-# EMAIL_USE_TLS = False
 EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER')
 EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD')
-EMAIL_TIMEOUT = 20
-DEFAULT_FROM_EMAIL = 'noreply@eventaflow.eu'
+DEFAULT_FROM_EMAIL = 'Bedrijfsnaam <noreply@eventaflow.eu>'
 
 # Belangrijk voor Traefik/HTTPS links in de mail:
-# USE_X_FORWARDED_HOST = True
+USE_X_FORWARDED_HOST = True
+USE_X_FORWARDED_PORT = True
