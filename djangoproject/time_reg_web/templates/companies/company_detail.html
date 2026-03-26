@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bedrijf beheren - {{ user.profile.company.name }}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body class="bg-gray-50 min-h-screen">
+
+    <!-- Navigatie -->
+    <nav class="bg-white shadow-sm border-b border-gray-200">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex justify-between items-center">
+            <div class="flex items-center">
+                <a href="/" class="text-xl font-bold text-blue-600 hover:opacity-80 transition-opacity">
+                    <i class="fas fa-arrow-left mr-2"></i> Terug naar Dashboard
+                </a>
+            </div>
+            <div class="font-medium text-gray-700">
+                    {{ user.profile.company.name }}
+            </div>
+        </div>
+    </nav>
+
+    <main class="max-w-3xl mx-auto py-12 px-4">
+        <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+            <div class="p-8 bg-blue-600 text-white">
+                <h1 class="text-2xl font-bold">Bedrijf Beheer</h1>
+                <p class="text-blue-100 mt-1">Beheer medewerkers en projectinstellingen voor {{ company.name }}.</p>
+            </div>
+
+            <form method="POST" class="p-8 space-y-6">
+                {% csrf_token %}
+                
+                <h2 class="text-xl font-semibold text-gray-800">Medewerkers</h2>
+                <p class="text-gray-500 mb-4">Voeg collega's toe aan je bedrijf of beheer bestaande medewerkers.</p>
+
+                <div class="flex items-center space-x-4 mb-6">
+                    <input type="email" name="employee_email" required
+                        class="flex-1 block w-full pl-3 pr-3 py-3 border border-gray-300 rounded-xl shadow-sm focus:ring-blue-500 focus:border-blue-500 transition-all outline-none" 
+                        placeholder="Email adres van collega...">
+                    <button type="submit" name="add_employee" class="px-4 py-3 bg-green-600 text-white rounded-xl hover:bg-green-700 transition-colors">
+                        <i class="fas fa-user-plus mr-2"></i> Toevoegen
+                    </button>
+                </div>
+                {% if company_employees %}
+                    <ul class="divide-y divide-gray-200">
+                        {% for employee in company_employees %}
+                            <li class="py-4 flex items-center justify-between">
+                                <div class="flex items-center space-x-4">
+                                    <div class="flex-shrink-0">
+                                        <i class="fas fa-user text-gray-400"></i>
+                                    </div>
+                                    <div>
+                                        <p class="text-sm font-medium text-gray-900">{{ employee.user.username }}</p>
+                                        <p class="text-sm text-gray-500">{{ employee.user.email }}</p>
+                                    </div>
+                                </div>
+                                <div>
+                                    <button type="submit" name="remove_employee" value="{{ employee.id }}" class=">px-3 py-2 bg-red-600 text-white rounded-xl hover:bg-red-700 transition-colors">
+                                        <i class="fas fa-user-minus mr-1"></i> Verwijderen
+                                    </button>
+                                </div>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                {% else %}
+                    <p class="text-gray-500">Er zijn nog geen medewerkers toegevoegd aan dit bedrijf.</p>
+                {% endif %}
+            </form>
+        </div>
+    </main>
+</body>
+</html>

@@ -10,6 +10,7 @@ urlpatterns = [
     path('create_company/', views.CompanyCreateView.as_view(), name='create_company'),
     path('switch_company/<int:company_id>/', views.switch_company, name='switch_company'),
     path('register/', views.RegisterUserView.as_view(), name='register_company'),
+    path('company_detail/', views.CompanyDetailView.as_view(), name='company_detail'),
     path('customer/new/', views.CustomerCreateView.as_view(), name='customer_create'),
     path('project/new/', views.ProjectCreateView.as_view(), name='project_create'),
     path('timer/start/', views.start_timer, name='start_timer'),

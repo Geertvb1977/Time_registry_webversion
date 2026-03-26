@@ -49,8 +49,6 @@ class UserProfile(models.Model):
 
 # 3. Bestaande modellen aanpassen (Klant, Project, etc.)
 
-# company = models.ForeignKey(Company, on_delete=models.CASCADE)
-
 
 class Customer(models.Model):
     """ Model voor klanten binnen een bedrijf """

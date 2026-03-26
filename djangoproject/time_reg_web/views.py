@@ -1,6 +1,7 @@
 """Views voor multi-tenant ondersteuning in de tijdregistratie webapplicatie."""
 
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib import messages
 from django.views import View
 from django.views.generic import ListView, CreateView, UpdateView
 from django.db import transaction
@@ -9,7 +10,7 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import logout, login
 from django.utils import timezone
-from django.shortcuts import get_object_or_404
+
 from django.http import HttpResponse
 from django.urls import reverse_lazy
 from django.views.generic.base import RedirectView
@@ -284,6 +285,71 @@ class CompanyCreateView(LoginRequiredMixin, CreateView):
         # Voeg extra logging toe voor jezelf in de console als het formulier faalt
         print(f"Form errors: {form.errors}")
         return super().form_invalid(form)
+
+
+
+class CompanyDetailView(LoginRequiredMixin, View):
+    template_name = 'companies/company_detail.html'
+
+    def get_context_data(self, company):
+        """Helper om de context op te halen"""
+        return {
+            'company': company,
+            'company_employees': UserProfile.objects.filter(company=company),
+            # 'projects': Project.objects.filter(customer__company=company) # Veronderstelt Project -> Customer -> Company
+            }
+
+    def get(self, request):
+        company = request.user.profile.company
+        if not company:
+            messages.error(request, "Je bent niet gekoppeld aan een bedrijf.")
+            return redirect('eventaflow:dashboard')
+        return render(request, self.template_name, self.get_context_data(company))
+
+    def post(self, request):
+        company = request.user.profile.company
+
+        # 1. Medewerker toevoegen via e-mail
+        if 'add_employee' in request.POST:
+            email = request.POST.get('employee_email', '').strip()
+        # Validatie: email mag niet leeg zijn
+            if not email:
+                messages.error(request, "Voer alstublieft een e-mailadres in.")
+            else:
+                try:
+                    # Zoek gebruiker op e-mail (case-insensitive)
+                    user_to_add = User.objects.get(email__iexact=email)
+                    # Controleer of deze gebruiker al in het bedrijf zit
+                    existing_profile = UserProfile.objects.filter(
+                    user=user_to_add, 
+                    company=company
+                    ).first()
+                    if existing_profile:
+                        messages.warning(request, f"{user_to_add.username} is al lid van dit bedrijf.")
+                    else:
+                    # Maak of update het profiel
+                        profile, created = UserProfile.objects.get_or_create(user=user_to_add)
+                        profile.company = company
+                        profile.is_company_admin = False # Expliciet geen admin maken
+                        profile.save()
+                        company.members.add(user_to_add) # Voeg toe aan de ManyToMany relatie
+                        messages.success(request, f"{user_to_add.username} ({user_to_add.email}) is toegevoegd aan het bedrijf.")
+                except User.DoesNotExist:
+                    messages.error(request, f"Geen gebruiker gevonden met e-mailadres '{email}'. Controleer het e-mailadres en probeer opnieuw.")
+
+        # 2. Medewerker verwijderen
+        elif 'remove_employee' in request.POST:
+            employee_id = request.POST.get('remove_employee')
+            try:
+                profile = UserProfile.objects.get(id=employee_id, company=company)
+                user_name = profile.user.username
+                profile.delete()
+                messages.success(request, f"{user_name} is verwijderd uit het bedrijf.")
+            except UserProfile.DoesNotExist:
+                messages.error(request, "Medewerker niet gevonden.")
+
+        return render(request, self.template_name, self.get_context_data(company))
+
 
 
 # 6. Uitloggen
