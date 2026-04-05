@@ -21,7 +21,6 @@ from .mixins import TenantObjectMixin
 from .forms import RegistrationForm
 
 
-
 # 1. Het Dashboard (Hoofdpagina)
 class DashboardView(TenantObjectMixin, ListView):
     model = Project
@@ -287,7 +286,6 @@ class CompanyCreateView(LoginRequiredMixin, CreateView):
         return super().form_invalid(form)
 
 
-
 class CompanyDetailView(LoginRequiredMixin, View):
     template_name = 'companies/company_detail.html'
 
@@ -349,7 +347,6 @@ class CompanyDetailView(LoginRequiredMixin, View):
                 messages.error(request, "Medewerker niet gevonden.")
 
         return render(request, self.template_name, self.get_context_data(company))
-
 
 
 # 6. Uitloggen
