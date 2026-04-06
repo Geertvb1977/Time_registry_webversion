@@ -1,300 +1,254 @@
-{% extends "base.html" %}
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>To-do beheer - {{ user.profile.company.name }}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body class="bg-gray-50 min-h-screen font-sans">
 
-{% block title %}To-Do Lijst{% endblock title %}
-
-{% block content %}
-
-<div class="mb-6">
-    <h1 class="text-3xl font-bold text-gray-900 flex items-center">
-        <i class="fas fa-list-check text-purple-600 mr-3"></i>
-        To-Do Lijstbeheer
-    </h1>
-</div>
-
-<!-- Main Two-Column Layout -->
-<div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-    
-    <!-- LEFT SIDE: Filters & To-Do List -->
-    <div class="lg:col-span-1">
-        <!-- Filters Section -->
-        <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden sticky top-8">
-            <div class="p-6 bg-gray-50 border-b border-gray-200">
-                <h2 class="text-lg font-bold text-gray-900">
-                    <i class="fas fa-filter text-purple-600 mr-2"></i> Filters
-                </h2>
+    <!-- Top Navigatie -->
+    <nav class="bg-white shadow-sm border-b border-gray-200">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16 text-center items-center">
+                <div class="flex items-center">
+                    <a href="/" class="text-blue-600 hover:text-blue-800 transition-colors">
+                        <i class="fas fa-arrow-left mr-2"></i> Terug naar Dashboard
+                    </a>
+                </div>
+                <div class="font-medium text-gray-700">
+                    {{ user.profile.company.name }}
+                </div>
             </div>
-            
-            <form id="filter-form" method="GET" class="p-6 space-y-4">
-                <!-- Customer Filter -->
-                <div>
-                    <label for="filter_customer" class="block text-sm font-semibold text-gray-700 mb-2">Klant</label>
-                    <select name="customer" id="filter_customer" 
-                        class="w-full rounded-lg border border-gray-300 shadow-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500 py-2 px-3 text-sm">
-                        <option value="">Alle Klanten</option>
-                        {% for customer in customers %}
-                            <option value="{{ customer.id }}" {% if request.GET.customer == customer.id|stringformat:"s" %}selected{% endif %}>
-                                {{ customer.customer_name }}
-                            </option>
-                        {% endfor %}
-                    </select>
-                </div>
-
-                <!-- Project Filter -->
-                <div>
-                    <label for="filter_project" class="block text-sm font-semibold text-gray-700 mb-2">Project</label>
-                    <select name="project" id="filter_project" 
-                        class="w-full rounded-lg border border-gray-300 shadow-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500 py-2 px-3 text-sm">
-                        <option value="">Alle Projecten</option>
-                        {% for project in projects %}
-                            <option value="{{ project.id }}" {% if request.GET.project == project.id|stringformat:"s" %}selected{% endif %}>
-                                {{ project.project_name }}
-                            </option>
-                        {% endfor %}
-                    </select>
-                </div>
-
-                <!-- Completion Status Filter -->
-                <div>
-                    <label for="filter_status" class="block text-sm font-semibold text-gray-700 mb-2">Status</label>
-                    <select name="is_completed" id="filter_status" 
-                        class="w-full rounded-lg border border-gray-300 shadow-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500 py-2 px-3 text-sm">
-                        <option value="">Alle Taken</option>
-                        <option value="false" {% if request.GET.is_completed == "false" %}selected{% endif %}>Openstaande Taken</option>
-                        <option value="true" {% if request.GET.is_completed == "true" %}selected{% endif %}>Afgeronde Taken</option>
-                    </select>
-                </div>
-
-                <button type="submit" class="w-full bg-purple-600 text-white py-2 px-4 rounded-lg hover:bg-purple-700 transition font-medium text-sm">
-                    <i class="fas fa-check mr-2"></i> Toepassen
-                </button>
-            </form>
         </div>
+    </nav>
 
-        <!-- To-Do List Section -->
-        <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden mt-8">
-            <div class="p-6 bg-gray-50 border-b border-gray-200">
-                <h2 class="text-lg font-bold text-gray-900">
-                    <i class="fas fa-tasks text-purple-600 mr-2"></i> Taken
-                </h2>
+    <!-- Blauwe Banner Header -->
+    <header class="bg-white text-blue-600 py-10 shadow-inner">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+                <div>
+                    <h1 class="text-3xl font-extrabold tracking-tight">To-do beheer</h1>
+                    <p class="mt-2 text-blue-600">Organiseer je werk, wijs taken toe en volg de voortgang per project.</p>
+                </div>
+                <a href="{% url 'eventaflow:todo_list' %}" class="inline-flex items-center px-5 py-2.5 bg-white text-blue-600 rounded-lg font-bold hover:bg-blue-50 transition-all shadow-lg active:transform active:scale-95">
+                    <i class="fas fa-plus-circle mr-2"></i> Nieuwe Taak
+                </a>
             </div>
+        </div>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-6">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 pb-12">
             
-            <div class="divide-y divide-gray-200 max-h-[600px] overflow-y-auto">
-                {% if todos %}
-                    {% for todo in todos %}
-                        <div class="p-4 hover:bg-gray-50 transition border-l-4 {% if todo.is_completed %}border-l-green-500{% else %}border-l-purple-500{% endif %}">
-                            <div class="flex items-start justify-between gap-3">
-                                <div class="flex-1 flex items-start gap-2">
-                                    <form method="POST" action="{% url 'eventaflow:todo_toggle' todo.id %}" style="display:inline;" class="mt-1">
-                                        {% csrf_token %}
-                                        <input type="checkbox" class="w-4 h-4 text-green-600 rounded focus-visible:ring-2 focus-visible:ring-green-500" 
-                                            {% if todo.is_completed %}checked{% endif %} 
-                                            onchange="this.form.submit()">
-                                    </form>
-                                    <div class="flex-1">
-                                        <h3 class="font-semibold text-gray-900 text-sm {% if todo.is_completed %}line-through text-gray-400{% endif %}">
-                                            {{ todo.title }}
-                                        </h3>
-                                        <p class="text-xs text-gray-500 mt-1">{{ todo.project_id.project_name }}</p>
-                                        <div class="flex items-center space-x-3 mt-2 flex-wrap">
-                                            {% if todo.due_date %}
-                                                <span class="text-xs text-gray-600">
-                                                    <i class="fas fa-calendar-alt mr-1"></i> {{ todo.due_date|date:"d-m-Y" }}
-                                                </span>
-                                            {% endif %}
-                                            <span class="text-xs text-gray-600">
-                                                <i class="fas fa-user mr-1"></i> {{ todo.user.username }}
-                                            </span>
-                                            {% if todo.priority == 1 %}
-                                                <span class="text-xs px-2 py-1 bg-red-100 text-red-700 rounded">🔴 Hoog</span>
-                                            {% elif todo.priority == 2 %}
-                                                <span class="text-xs px-2 py-1 bg-yellow-100 text-yellow-700 rounded">🟡 Normaal</span>
-                                            {% else %}
-                                                <span class="text-xs px-2 py-1 bg-green-100 text-green-700 rounded">🟢 Laag</span>
-                                            {% endif %}
-                                        </div>
+            <!-- LINKER KOLOM (1/3): Filters & Lijst -->
+            <div class="lg:col-span-1 space-y-6">
+                
+                <!-- Filter Sectie -->
+                <section class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                    <div class="px-5 py-4 bg-gray-50 border-b border-gray-200 flex justify-between items-center">
+                        <h2 class="font-bold text-gray-800 flex items-center"><i class="fas fa-sliders-h mr-2 text-blue-500"></i> Filters</h2>
+                        {% if request.GET.customer or request.GET.project or request.GET.is_completed %}
+                            <a href="{% url 'eventaflow:todo_list' %}" class="text-xs text-blue-600 hover:underline">Wis filters</a>
+                        {% endif %}
+                    </div>
+                    <form id="filter-form" method="GET" class="p-5 space-y-4">
+                        <div>
+                            <select name="customer" class="w-full rounded-lg border-gray-300 text-sm focus:ring-blue-500 focus:border-blue-500 transition-shadow">
+                                <option value="">Alle Klanten</option>
+                                {% for c in customers %}
+                                    <option value="{{ c.id }}" {% if request.GET.customer == c.id|stringformat:"s" %}selected{% endif %}>{{ c.customer_name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div>
+                            <select name="project" class="w-full rounded-lg border-gray-300 text-sm focus:ring-blue-500 focus:border-blue-500">
+                                <option value="">Alle Projecten</option>
+                                {% for p in projects %}
+                                    <option value="{{ p.id }}" {% if request.GET.project == p.id|stringformat:"s" %}selected{% endif %}>{{ p.project_name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div>
+                            <select name="is_completed" class="w-full rounded-lg border-gray-300 text-sm focus:ring-blue-500 focus:border-blue-500">
+                                <option value="">Status: Alle</option>
+                                <option value="false" {% if request.GET.is_completed == "false" %}selected{% endif %}>Openstaand</option>
+                                <option value="true" {% if request.GET.is_completed == "true" %}selected{% endif %}>Afgerond</option>
+                            </select>
+                        </div>
+                    </form>
+                </section>
+
+                <!-- Takenlijst Sectie -->
+                <section class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                    <div class="px-5 py-4 bg-gray-50 border-b border-gray-200">
+                        <h2 class="font-bold text-gray-800 flex items-center"><i class="fas fa-list mr-2 text-blue-500"></i> Takenlijst</h2>
+                    </div>
+                    <div class="divide-y divide-gray-100 max-h-[500px] overflow-y-auto">
+                        {% for todo in todos %}
+                            <div class="group relative flex items-center p-4 hover:bg-blue-50 transition-colors {% if edit_id == todo.id|stringformat:'s' %}bg-blue-50 border-l-4 border-blue-600 shadow-inner{% endif %}">
+                                <!-- Direct Toggle Checkbox -->
+                                <form method="POST" action="{% url 'eventaflow:todo_toggle' todo.id %}" class="mr-4">
+                                    {% csrf_token %}
+                                    <input type="checkbox" onchange="this.form.submit()" {% if todo.is_completed %}checked{% endif %}
+                                        class="w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer">
+                                </form>
+                                
+                                <!-- Edit Link -->
+                                <a href="?edit={{ todo.id }}{% if request.GET.customer %}&customer={{ request.GET.customer }}{% endif %}{% if request.GET.project %}&project={{ request.GET.project }}{% endif %}{% if request.GET.is_completed %}&is_completed={{ request.GET.is_completed }}{% endif %}" 
+                                   class="flex-1 min-w-0 pr-4">
+                                    <h3 class="text-sm font-semibold text-gray-900 truncate {% if todo.is_completed %}line-through text-gray-400{% endif %}">
+                                        {{ todo.title }}
+                                    </h3>
+                                    <div class="flex items-center gap-2 mt-1">
+                                        <span class="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded {% if todo.priority == 1 %}bg-red-100 text-red-700{% elif todo.priority == 2 %}bg-yellow-100 text-yellow-700{% else %}bg-green-100 text-green-700{% endif %}">
+                                            P{{ todo.priority }}
+                                        </span>
+                                        <span class="text-[10px] text-gray-500 truncate">{{ todo.project_id.project_name }}</span>
                                     </div>
+                                </a>
+                                <i class="fas fa-chevron-right text-gray-300 group-hover:text-blue-400 group-hover:translate-x-1 transition-all text-xs"></i>
+                            </div>
+                        {% empty %}
+                            <div class="p-10 text-center">
+                                <i class="fas fa-tasks text-gray-200 text-4xl mb-3"></i>
+                                <p class="text-gray-400 text-sm">Geen taken gevonden.</p>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </section>
+            </div>
+
+            <!-- RECHTER KOLOM (2/3): Formulier -->
+            <div class="lg:col-span-2">
+                <div class="bg-white rounded-xl shadow-xl border border-gray-200 overflow-hidden sticky top-6">
+                    <div class="p-6 bg-gradient-to-r from-blue-600 to-blue-700 text-white">
+                        <h2 class="text-xl font-bold flex items-center">
+                            <i class="fas fa-edit mr-3"></i>
+                            {% if edit_id %}Taak aanpassen{% else %}Taak aanmaken{% endif %}
+                        </h2>
+                        <p class="text-blue-100 text-sm mt-1">Wijzig de details en klik op opslaan om de database bij te werken.</p>
+                    </div>
+
+                    <form method="POST" class="p-8 space-y-6">
+                        {% csrf_token %}
+                        <!-- Verborgen ID voor de View om te weten of het een UPDATE is -->
+                        {% if edit_id %}<input type="hidden" name="id" value="{{ edit_id }}">{% endif %}
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                            <!-- Linker Kolom Form -->
+                            <div class="space-y-6">
+                                <div>
+                                    <label class="block text-xs font-bold uppercase tracking-widest text-gray-500 mb-2">Klant *</label>
+                                    <select name="customer_id" required class="w-full rounded-lg border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500 py-2.5">
+                                        <option value="">-- Selecteer Klant --</option>
+                                        {% for c in customers %}
+                                            <option value="{{ c.id }}" {% if form.instance.customer_id.id == c.id %}selected{% endif %}>{{ c.customer_name }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-bold uppercase tracking-widest text-gray-500 mb-2">Project *</label>
+                                    <select name="project_id" required class="w-full rounded-lg border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500 py-2.5">
+                                        <option value="">-- Selecteer Project --</option>
+                                        {% for p in projects %}
+                                            <option value="{{ p.id }}" {% if form.instance.project_id.id == p.id %}selected{% endif %}>{{ p.project_name }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-bold uppercase tracking-widest text-gray-500 mb-2">Toewijzen aan *</label>
+                                    <select name="user" required class="w-full rounded-lg border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500 py-2.5">
+                                        {% for m in company_members %}
+                                            <option value="{{ m.id }}" {% if form.instance.user.id == m.id or not form.instance.id and m == request.user %}selected{% endif %}>{{ m.username }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                            </div>
+
+                            <!-- Rechter Kolom Form -->
+                            <div class="space-y-6">
+                                <div>
+                                    <label class="block text-xs font-bold uppercase tracking-widest text-gray-500 mb-2">Prioriteit *</label>
+                                    <select name="priority" required class="w-full rounded-lg border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500 py-2.5">
+                                        <option value="1" {% if form.instance.priority == 1 %}selected{% endif %}>Hoog</option>
+                                        <option value="2" {% if form.instance.priority == 2 or not form.instance.id %}selected{% endif %}>Normaal</option>
+                                        <option value="3" {% if form.instance.priority == 3 %}selected{% endif %}>Laag</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-bold uppercase tracking-widest text-gray-500 mb-2">Deadline</label>
+                                    <input type="date" name="due_date" value="{{ form.instance.due_date|date:'Y-m-d' }}"
+                                        class="w-full rounded-lg border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500 py-2.5 px-4">
+                                </div>
+                                <div class="pt-8">
+                                    <label class="inline-flex items-center cursor-pointer group">
+                                        <div class="relative">
+                                            <input type="checkbox" name="is_completed" id="id_is_completed_form" {% if form.instance.is_completed %}checked{% endif %} class="sr-only">
+                                            <div class="w-10 h-5 bg-gray-300 rounded-full shadow-inner group-hover:bg-gray-400 transition-colors"></div>
+                                            <div class="dot absolute w-6 h-6 bg-white rounded-full shadow -left-1 -top-0.5 transition-transform"></div>
+                                        </div>
+                                        <span class="ml-3 text-sm font-bold text-gray-700">Taak markeren als voltooid</span>
+                                    </label>
                                 </div>
                             </div>
                         </div>
-                    {% endfor %}
-                {% else %}
-                    <div class="p-8 text-center text-gray-500">
-                        <i class="fas fa-inbox text-3xl mb-2 opacity-30"></i>
-                        <p class="text-sm">Geen taken gevonden</p>
-                    </div>
-                {% endif %}
+
+                        <div>
+                            <label class="block text-xs font-bold uppercase tracking-widest text-gray-500 mb-2">Titel van de taak *</label>
+                            <input type="text" name="title" required value="{{ form.instance.title|default:'' }}"
+                                class="w-full rounded-lg border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500 px-4 py-3 text-lg font-medium"
+                                placeholder="Bijv. Projectofferte herzien...">
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-bold uppercase tracking-widest text-gray-500 mb-2">Beschrijving</label>
+                            <textarea name="description" rows="4" class="w-full rounded-lg border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500 px-4 py-3 resize-none"
+                                placeholder="Voeg extra context of sub-taken toe...">{{ form.instance.description|default:'' }}</textarea>
+                        </div>
+
+                        <!-- Actie Knoppen -->
+                        <div class="flex flex-col sm:flex-row gap-4 pt-8 border-t border-gray-100">
+                            <a href="{% url 'eventaflow:todo_list' %}" class="order-2 sm:order-1 flex-1 px-6 py-3.5 border border-gray-200 text-gray-600 rounded-xl font-bold hover:bg-gray-50 hover:border-gray-300 transition-all text-center">
+                                Annuleren
+                            </a>
+                            <button type="submit" class="order-1 sm:order-2 flex-[2] px-6 py-3.5 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 hover:shadow-lg transition-all flex items-center justify-center">
+                                <i class="fas fa-check-circle mr-2"></i> {% if edit_id %}Taak bijwerken{% else %}Taak aanmaken{% endif %}
+                            </button>
+                        </div>
+                    </form>
+                </div>
             </div>
+
         </div>
-    </div>
+    </main>
 
-    <!-- RIGHT SIDE: To-Do Form -->
-    <div class="lg:col-span-2">
-        <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden sticky top-8">
-            <div class="p-6 bg-purple-600 text-white">
-                <h2 class="text-lg font-bold flex items-center">
-                    <i class="fas fa-edit mr-2"></i>
-                    {% if form.instance.id %}
-                        Taak Bewerken
-                    {% else %}
-                        Nieuwe Taak Aanmaken
-                    {% endif %}
-                </h2>
-            </div>
+    <style>
+        /* Custom Switch Styling */
+        input:checked ~ .dot {
+            transform: translateX(100%);
+            background-color: #2563eb;
+        }
+        input:checked ~ div:first-child {
+            background-color: #dbeafe;
+        }
+        
+        /* Smooth Scroll voor de lijst */
+        .overflow-y-auto {
+            scrollbar-width: thin;
+            scrollbar-color: #e2e8f0 transparent;
+        }
+    </style>
 
-            <form method="POST" class="p-8 space-y-6">
-                {% csrf_token %}
-
-                <!-- Hidden ID for editing -->
-                {% if form.instance.id %}
-                    <input type="hidden" name="id" value="{{ form.instance.id }}">
-                {% endif %}
-
-                <!-- Customer Selection -->
-                <div>
-                    <label for="id_customer_id" class="block text-sm font-semibold text-gray-700 mb-2">
-                        <i class="fas fa-user-tie text-purple-600 mr-1"></i> Klant <span class="text-red-600">*</span>
-                    </label>
-                    <select name="customer_id" id="id_customer_id" required 
-                        class="w-full rounded-lg border {% if form.customer_id.errors %}border-red-500{% else %}border-gray-300{% endif %} shadow-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500 py-3 px-4">
-                        <option value="">-- Selecteer Klant --</option>
-                        {% for customer in customers %}
-                            <option value="{{ customer.id }}" {% if form.instance.customer_id.id == customer.id %}selected{% endif %}>
-                                {{ customer.customer_name }}
-                            </option>
-                        {% endfor %}
-                    </select>
-                    {% if form.customer_id.errors %}
-                        <p class="text-red-600 text-sm mt-1"><i class="fas fa-exclamation-circle mr-1"></i>{{ form.customer_id.errors.0 }}</p>
-                    {% endif %}
-                </div>
-
-                <!-- Project Selection -->
-                <div>
-                    <label for="id_project_id" class="block text-sm font-semibold text-gray-700 mb-2">
-                        <i class="fas fa-project-diagram text-purple-600 mr-1"></i> Project <span class="text-red-600">*</span>
-                    </label>
-                    <select name="project_id" id="id_project_id" required 
-                        class="w-full rounded-lg border {% if form.project_id.errors %}border-red-500{% else %}border-gray-300{% endif %} shadow-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500 py-3 px-4">
-                        <option value="">-- Selecteer Project --</option>
-                        {% for project in projects %}
-                            <option value="{{ project.id }}" {% if form.instance.project_id.id == project.id %}selected{% endif %}>
-                                {{ project.project_name }}
-                            </option>
-                        {% endfor %}
-                    </select>
-                    {% if form.project_id.errors %}
-                        <p class="text-red-600 text-sm mt-1"><i class="fas fa-exclamation-circle mr-1"></i>{{ form.project_id.errors.0 }}</p>
-                    {% endif %}
-                </div>
-
-                <!-- User (Company Member) Selection -->
-                <div>
-                    <label for="id_user" class="block text-sm font-semibold text-gray-700 mb-2">
-                        <i class="fas fa-user-check text-purple-600 mr-1"></i> Teamlid <span class="text-red-600">*</span>
-                    </label>
-                    <select name="user" id="id_user" required 
-                        class="w-full rounded-lg border {% if form.user.errors %}border-red-500{% else %}border-gray-300{% endif %} shadow-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500 py-3 px-4">
-                        <option value="">-- Selecteer Teamlid --</option>
-                        {% for user in company_members %}
-                            <option value="{{ user.id }}" {% if form.instance.user.id == user.id %}selected{% endif %}>
-                                {{ user.username }}
-                            </option>
-                        {% endfor %}
-                    </select>
-                    {% if form.user.errors %}
-                        <p class="text-red-600 text-sm mt-1"><i class="fas fa-exclamation-circle mr-1"></i>{{ form.user.errors.0 }}</p>
-                    {% endif %}
-                </div>
-
-                <!-- Priority Selection -->
-                <div>
-                    <label for="id_priority" class="block text-sm font-semibold text-gray-700 mb-2">
-                        <i class="fas fa-exclamation-circle text-purple-600 mr-1"></i> Prioriteit <span class="text-red-600">*</span>
-                    </label>
-                    <select name="priority" id="id_priority" required 
-                        class="w-full rounded-lg border border-gray-300 shadow-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500 py-3 px-4">
-                        <option value="1" {% if form.instance.priority == 1 %}selected{% endif %}>🔴 Hoog</option>
-                        <option value="2" {% if form.instance.priority == 2 %}selected{% endif %}>🟡 Normaal</option>
-                        <option value="3" {% if form.instance.priority == 3 %}selected{% endif %}>🟢 Laag</option>
-                    </select>
-                    {% if form.priority.errors %}
-                        <p class="text-red-600 text-sm mt-1"><i class="fas fa-exclamation-circle mr-1"></i>{{ form.priority.errors.0 }}</p>
-                    {% endif %}
-                </div>
-
-                <!-- Title -->
-                <div>
-                    <label for="id_title" class="block text-sm font-semibold text-gray-700 mb-2">
-                        <i class="fas fa-heading text-purple-600 mr-1"></i> Titel <span class="text-red-600">*</span>
-                    </label>
-                    <input type="text" name="title" id="id_title" required placeholder="Bijv. Website Homepage Update"
-                        class="w-full rounded-lg border {% if form.title.errors %}border-red-500{% else %}border-gray-300{% endif %} shadow-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500 py-3 px-4"
-                        value="{{ form.instance.title }}">
-                    {% if form.title.errors %}
-                        <p class="text-red-600 text-sm mt-1"><i class="fas fa-exclamation-circle mr-1"></i>{{ form.title.errors.0 }}</p>
-                    {% endif %}
-                </div>
-
-                <!-- Due Date -->
-                <div>
-                    <label for="id_due_date" class="block text-sm font-semibold text-gray-700 mb-2">
-                        <i class="fas fa-calendar text-purple-600 mr-1"></i> Einddatum
-                    </label>
-                    <input type="date" name="due_date" id="id_due_date"
-                        class="w-full rounded-lg border {% if form.due_date.errors %}border-red-500{% else %}border-gray-300{% endif %} shadow-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500 py-3 px-4"
-                        value="{% if form.instance.due_date %}{{ form.instance.due_date|date:'Y-m-d' }}{% endif %}">
-                    {% if form.due_date.errors %}
-                        <p class="text-red-600 text-sm mt-1"><i class="fas fa-exclamation-circle mr-1"></i>{{ form.due_date.errors.0 }}</p>
-                    {% endif %}
-                </div>
-
-                <!-- Description -->
-                <div>
-                    <label for="id_description" class="block text-sm font-semibold text-gray-700 mb-2">
-                        <i class="fas fa-align-left text-purple-600 mr-1"></i> Beschrijving
-                    </label>
-                    <textarea name="description" id="id_description" rows="6" placeholder="Detailleerde beschrijving van de taak..."
-                        class="w-full rounded-lg border {% if form.description.errors %}border-red-500{% else %}border-gray-300{% endif %} shadow-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500 py-3 px-4 resize-none">{{ form.instance.description }}</textarea>
-                    {% if form.description.errors %}
-                        <p class="text-red-600 text-sm mt-1"><i class="fas fa-exclamation-circle mr-1"></i>{{ form.description.errors.0 }}</p>
-                    {% endif %}
-                </div>
-
-                <!-- Completion Status -->
-                <div class="flex items-center space-x-3 bg-purple-50 p-4 rounded-lg border border-purple-200">
-                    <input type="checkbox" name="is_completed" id="id_is_completed"
-                        class="w-5 h-5 text-green-600 border-gray-300 rounded focus:ring-green-500"
-                        {% if form.instance.is_completed %}checked{% endif %}>
-                    <label for="id_is_completed" class="text-sm font-medium text-gray-700">
-                        <i class="fas fa-check-circle text-green-600 mr-1"></i> Taak afgerond
-                    </label>
-                </div>
-
-                <!-- Buttons -->
-                <div class="flex gap-4 pt-4">
-                    <a href="{% url 'eventaflow:todo_list' %}" class="flex-1 border border-gray-300 text-gray-700 py-3 px-4 rounded-lg hover:bg-gray-50 transition font-semibold flex items-center justify-center">
-                        <i class="fas fa-times mr-2"></i> Annuleren
-                    </a>
-                    <button type="submit" class="flex-1 bg-purple-600 text-white py-3 px-4 rounded-lg hover:bg-purple-700 transition font-semibold shadow-lg shadow-purple-100 flex items-center justify-center">
-                        <i class="fas fa-save mr-2"></i> Opslaan
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-</div>
-
-<script>
-    // Auto-submit filters on change
-    const filterForm = document.getElementById('filter-form');
-    if (filterForm) {
-        filterForm.querySelectorAll('select').forEach(select => {
-            select.addEventListener('change', () => {
-                filterForm.submit();
-            });
+    <script>
+        // Auto-submit filters op verandering
+        document.querySelectorAll('#filter-form select').forEach(select => {
+            select.addEventListener('change', () => document.getElementById('filter-form').submit());
         });
-    }
-</script>
+    </script>
 
-{% endblock content %}
+</body>
+</html>

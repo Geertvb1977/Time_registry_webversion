@@ -397,50 +397,50 @@ def stop_timer(request, timer_id):
 
 # 5. To-Do List View
 class TodoListView(LoginRequiredMixin, View):
-    """View voor het beheren van taken (to-do's)"""
+    """View voor het beheren van taken (to-do's) met edit-functionaliteit via URL parameters."""
     template_name = 'dashboard/to-do-beheer.html'
 
     def get_context_data(self, request):
         company = request.user.profile.company
         
-        # Haal alle customers voor het bedrijf op
+        # Haal basisgegevens op voor dropdowns
         customers = Customer.objects.filter(company=company)
-        
-        # Haal alle projecten voor het bedrijf op
         projects = Project.objects.filter(company=company)
-        
-        # Haal alle teamleden op (company members)
         company_members = company.members.all()
         
-        # Basis queryset voor todos
+        # Filtering logica voor de linkerlijst
         todos = Todo.objects.filter(company=company).select_related('user', 'project_id', 'customer_id')
         
-        # Filtering op customer
-        customer_id = request.GET.get('customer')
-        if customer_id:
-            todos = todos.filter(customer_id__id=customer_id)
+        customer_filter = request.GET.get('customer')
+        if customer_filter:
+            todos = todos.filter(customer_id__id=customer_filter)
         
-        # Filtering op project
-        project_id = request.GET.get('project')
-        if project_id:
-            todos = todos.filter(project_id__id=project_id)
+        project_filter = request.GET.get('project')
+        if project_filter:
+            todos = todos.filter(project_id__id=project_filter)
         
-        # Filtering op completion status
         is_completed = request.GET.get('is_completed')
         if is_completed == 'true':
             todos = todos.filter(is_completed=True)
         elif is_completed == 'false':
             todos = todos.filter(is_completed=False)
         
-        # Sorteer de todos
         todos = todos.order_by('-created_at')
+
+        # Bewerkingslogica: check of er een ?edit=ID parameter is
+        form_instance = None
+        edit_id = request.GET.get('edit')
+        if edit_id:
+            # We filteren op company om te zorgen dat gebruikers geen taken van andere bedrijven kunnen editen
+            form_instance = get_object_or_404(Todo, id=edit_id, company=company)
         
         return {
             'customers': customers,
             'projects': projects,
             'company_members': company_members,
             'todos': todos,
-            'form': TodoForm()
+            'form': TodoForm(instance=form_instance),
+            'edit_id': edit_id
         }
 
     def get(self, request):
@@ -448,30 +448,38 @@ class TodoListView(LoginRequiredMixin, View):
         return render(request, self.template_name, context)
 
     def post(self, request):
+        # Check of we een bestaande taak updaten (verborgen 'id' veld in HTML)
+        todo_id = request.POST.get('id')
+        company = request.user.profile.company
+        
+        if todo_id:
+            instance = get_object_or_404(Todo, id=todo_id, company=company)
+            form = TodoForm(request.POST, instance=instance)
+        else:
+            form = TodoForm(request.POST)
+
         try:
             with transaction.atomic():
-                form = TodoForm(request.POST)
-                
                 if form.is_valid():
                     todo = form.save(commit=False)
-                    todo.company = request.user.profile.company
-                    
-                    # Als geen user is geselecteerd, zet het op de huidige gebruiker
+                    todo.company = company
+                    # Valideer of er een user is, anders huidige user
                     if not todo.user:
                         todo.user = request.user
-                    
                     todo.save()
-                    messages.success(request, 'Taak succesvol opgeslagen!')
+                    
+                    action = "bijgewerkt" if todo_id else "aangemaakt"
+                    messages.success(request, f'Taak succesvol {action}!')
                     return redirect('eventaflow:todo_list')
                 else:
+                    messages.error(request, 'Er staan fouten in het formulier.')
                     context = self.get_context_data(request)
                     context['form'] = form
                     return render(request, self.template_name, context)
         except Exception as e:
-            messages.error(request, f'Fout bij opslaan taak: {e}')
+            messages.error(request, f'Technische fout: {e}')
             context = self.get_context_data(request)
             return render(request, self.template_name, context)
-
 
 # 6. Toggle Todo Completion Status
 @login_required
