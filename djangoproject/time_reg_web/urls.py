@@ -16,4 +16,6 @@ urlpatterns = [
     path('timer/start/', views.start_timer, name='start_timer'),
     path('timer/stop/<int:timer_id>/', views.stop_timer, name='stop_timer'),
     path('export/', views.ExportView.as_view(), name='export'),
+    path('todos/', views.TodoListView.as_view(), name='todo_list'),
+    path('todos/<int:todo_id>/toggle/', views.toggle_todo, name='todo_toggle'),
 ]

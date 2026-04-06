@@ -1,0 +1,300 @@
+{% extends "base.html" %}
+
+{% block title %}To-Do Lijst{% endblock title %}
+
+{% block content %}
+
+<div class="mb-6">
+    <h1 class="text-3xl font-bold text-gray-900 flex items-center">
+        <i class="fas fa-list-check text-purple-600 mr-3"></i>
+        To-Do Lijstbeheer
+    </h1>
+</div>
+
+<!-- Main Two-Column Layout -->
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+    
+    <!-- LEFT SIDE: Filters & To-Do List -->
+    <div class="lg:col-span-1">
+        <!-- Filters Section -->
+        <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden sticky top-8">
+            <div class="p-6 bg-gray-50 border-b border-gray-200">
+                <h2 class="text-lg font-bold text-gray-900">
+                    <i class="fas fa-filter text-purple-600 mr-2"></i> Filters
+                </h2>
+            </div>
+            
+            <form id="filter-form" method="GET" class="p-6 space-y-4">
+                <!-- Customer Filter -->
+                <div>
+                    <label for="filter_customer" class="block text-sm font-semibold text-gray-700 mb-2">Klant</label>
+                    <select name="customer" id="filter_customer" 
+                        class="w-full rounded-lg border border-gray-300 shadow-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500 py-2 px-3 text-sm">
+                        <option value="">Alle Klanten</option>
+                        {% for customer in customers %}
+                            <option value="{{ customer.id }}" {% if request.GET.customer == customer.id|stringformat:"s" %}selected{% endif %}>
+                                {{ customer.customer_name }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Project Filter -->
+                <div>
+                    <label for="filter_project" class="block text-sm font-semibold text-gray-700 mb-2">Project</label>
+                    <select name="project" id="filter_project" 
+                        class="w-full rounded-lg border border-gray-300 shadow-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500 py-2 px-3 text-sm">
+                        <option value="">Alle Projecten</option>
+                        {% for project in projects %}
+                            <option value="{{ project.id }}" {% if request.GET.project == project.id|stringformat:"s" %}selected{% endif %}>
+                                {{ project.project_name }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Completion Status Filter -->
+                <div>
+                    <label for="filter_status" class="block text-sm font-semibold text-gray-700 mb-2">Status</label>
+                    <select name="is_completed" id="filter_status" 
+                        class="w-full rounded-lg border border-gray-300 shadow-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500 py-2 px-3 text-sm">
+                        <option value="">Alle Taken</option>
+                        <option value="false" {% if request.GET.is_completed == "false" %}selected{% endif %}>Openstaande Taken</option>
+                        <option value="true" {% if request.GET.is_completed == "true" %}selected{% endif %}>Afgeronde Taken</option>
+                    </select>
+                </div>
+
+                <button type="submit" class="w-full bg-purple-600 text-white py-2 px-4 rounded-lg hover:bg-purple-700 transition font-medium text-sm">
+                    <i class="fas fa-check mr-2"></i> Toepassen
+                </button>
+            </form>
+        </div>
+
+        <!-- To-Do List Section -->
+        <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden mt-8">
+            <div class="p-6 bg-gray-50 border-b border-gray-200">
+                <h2 class="text-lg font-bold text-gray-900">
+                    <i class="fas fa-tasks text-purple-600 mr-2"></i> Taken
+                </h2>
+            </div>
+            
+            <div class="divide-y divide-gray-200 max-h-[600px] overflow-y-auto">
+                {% if todos %}
+                    {% for todo in todos %}
+                        <div class="p-4 hover:bg-gray-50 transition border-l-4 {% if todo.is_completed %}border-l-green-500{% else %}border-l-purple-500{% endif %}">
+                            <div class="flex items-start justify-between gap-3">
+                                <div class="flex-1 flex items-start gap-2">
+                                    <form method="POST" action="{% url 'eventaflow:todo_toggle' todo.id %}" style="display:inline;" class="mt-1">
+                                        {% csrf_token %}
+                                        <input type="checkbox" class="w-4 h-4 text-green-600 rounded focus-visible:ring-2 focus-visible:ring-green-500" 
+                                            {% if todo.is_completed %}checked{% endif %} 
+                                            onchange="this.form.submit()">
+                                    </form>
+                                    <div class="flex-1">
+                                        <h3 class="font-semibold text-gray-900 text-sm {% if todo.is_completed %}line-through text-gray-400{% endif %}">
+                                            {{ todo.title }}
+                                        </h3>
+                                        <p class="text-xs text-gray-500 mt-1">{{ todo.project_id.project_name }}</p>
+                                        <div class="flex items-center space-x-3 mt-2 flex-wrap">
+                                            {% if todo.due_date %}
+                                                <span class="text-xs text-gray-600">
+                                                    <i class="fas fa-calendar-alt mr-1"></i> {{ todo.due_date|date:"d-m-Y" }}
+                                                </span>
+                                            {% endif %}
+                                            <span class="text-xs text-gray-600">
+                                                <i class="fas fa-user mr-1"></i> {{ todo.user.username }}
+                                            </span>
+                                            {% if todo.priority == 1 %}
+                                                <span class="text-xs px-2 py-1 bg-red-100 text-red-700 rounded">🔴 Hoog</span>
+                                            {% elif todo.priority == 2 %}
+                                                <span class="text-xs px-2 py-1 bg-yellow-100 text-yellow-700 rounded">🟡 Normaal</span>
+                                            {% else %}
+                                                <span class="text-xs px-2 py-1 bg-green-100 text-green-700 rounded">🟢 Laag</span>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="p-8 text-center text-gray-500">
+                        <i class="fas fa-inbox text-3xl mb-2 opacity-30"></i>
+                        <p class="text-sm">Geen taken gevonden</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- RIGHT SIDE: To-Do Form -->
+    <div class="lg:col-span-2">
+        <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden sticky top-8">
+            <div class="p-6 bg-purple-600 text-white">
+                <h2 class="text-lg font-bold flex items-center">
+                    <i class="fas fa-edit mr-2"></i>
+                    {% if form.instance.id %}
+                        Taak Bewerken
+                    {% else %}
+                        Nieuwe Taak Aanmaken
+                    {% endif %}
+                </h2>
+            </div>
+
+            <form method="POST" class="p-8 space-y-6">
+                {% csrf_token %}
+
+                <!-- Hidden ID for editing -->
+                {% if form.instance.id %}
+                    <input type="hidden" name="id" value="{{ form.instance.id }}">
+                {% endif %}
+
+                <!-- Customer Selection -->
+                <div>
+                    <label for="id_customer_id" class="block text-sm font-semibold text-gray-700 mb-2">
+                        <i class="fas fa-user-tie text-purple-600 mr-1"></i> Klant <span class="text-red-600">*</span>
+                    </label>
+                    <select name="customer_id" id="id_customer_id" required 
+                        class="w-full rounded-lg border {% if form.customer_id.errors %}border-red-500{% else %}border-gray-300{% endif %} shadow-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500 py-3 px-4">
+                        <option value="">-- Selecteer Klant --</option>
+                        {% for customer in customers %}
+                            <option value="{{ customer.id }}" {% if form.instance.customer_id.id == customer.id %}selected{% endif %}>
+                                {{ customer.customer_name }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                    {% if form.customer_id.errors %}
+                        <p class="text-red-600 text-sm mt-1"><i class="fas fa-exclamation-circle mr-1"></i>{{ form.customer_id.errors.0 }}</p>
+                    {% endif %}
+                </div>
+
+                <!-- Project Selection -->
+                <div>
+                    <label for="id_project_id" class="block text-sm font-semibold text-gray-700 mb-2">
+                        <i class="fas fa-project-diagram text-purple-600 mr-1"></i> Project <span class="text-red-600">*</span>
+                    </label>
+                    <select name="project_id" id="id_project_id" required 
+                        class="w-full rounded-lg border {% if form.project_id.errors %}border-red-500{% else %}border-gray-300{% endif %} shadow-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500 py-3 px-4">
+                        <option value="">-- Selecteer Project --</option>
+                        {% for project in projects %}
+                            <option value="{{ project.id }}" {% if form.instance.project_id.id == project.id %}selected{% endif %}>
+                                {{ project.project_name }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                    {% if form.project_id.errors %}
+                        <p class="text-red-600 text-sm mt-1"><i class="fas fa-exclamation-circle mr-1"></i>{{ form.project_id.errors.0 }}</p>
+                    {% endif %}
+                </div>
+
+                <!-- User (Company Member) Selection -->
+                <div>
+                    <label for="id_user" class="block text-sm font-semibold text-gray-700 mb-2">
+                        <i class="fas fa-user-check text-purple-600 mr-1"></i> Teamlid <span class="text-red-600">*</span>
+                    </label>
+                    <select name="user" id="id_user" required 
+                        class="w-full rounded-lg border {% if form.user.errors %}border-red-500{% else %}border-gray-300{% endif %} shadow-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500 py-3 px-4">
+                        <option value="">-- Selecteer Teamlid --</option>
+                        {% for user in company_members %}
+                            <option value="{{ user.id }}" {% if form.instance.user.id == user.id %}selected{% endif %}>
+                                {{ user.username }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                    {% if form.user.errors %}
+                        <p class="text-red-600 text-sm mt-1"><i class="fas fa-exclamation-circle mr-1"></i>{{ form.user.errors.0 }}</p>
+                    {% endif %}
+                </div>
+
+                <!-- Priority Selection -->
+                <div>
+                    <label for="id_priority" class="block text-sm font-semibold text-gray-700 mb-2">
+                        <i class="fas fa-exclamation-circle text-purple-600 mr-1"></i> Prioriteit <span class="text-red-600">*</span>
+                    </label>
+                    <select name="priority" id="id_priority" required 
+                        class="w-full rounded-lg border border-gray-300 shadow-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500 py-3 px-4">
+                        <option value="1" {% if form.instance.priority == 1 %}selected{% endif %}>🔴 Hoog</option>
+                        <option value="2" {% if form.instance.priority == 2 %}selected{% endif %}>🟡 Normaal</option>
+                        <option value="3" {% if form.instance.priority == 3 %}selected{% endif %}>🟢 Laag</option>
+                    </select>
+                    {% if form.priority.errors %}
+                        <p class="text-red-600 text-sm mt-1"><i class="fas fa-exclamation-circle mr-1"></i>{{ form.priority.errors.0 }}</p>
+                    {% endif %}
+                </div>
+
+                <!-- Title -->
+                <div>
+                    <label for="id_title" class="block text-sm font-semibold text-gray-700 mb-2">
+                        <i class="fas fa-heading text-purple-600 mr-1"></i> Titel <span class="text-red-600">*</span>
+                    </label>
+                    <input type="text" name="title" id="id_title" required placeholder="Bijv. Website Homepage Update"
+                        class="w-full rounded-lg border {% if form.title.errors %}border-red-500{% else %}border-gray-300{% endif %} shadow-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500 py-3 px-4"
+                        value="{{ form.instance.title }}">
+                    {% if form.title.errors %}
+                        <p class="text-red-600 text-sm mt-1"><i class="fas fa-exclamation-circle mr-1"></i>{{ form.title.errors.0 }}</p>
+                    {% endif %}
+                </div>
+
+                <!-- Due Date -->
+                <div>
+                    <label for="id_due_date" class="block text-sm font-semibold text-gray-700 mb-2">
+                        <i class="fas fa-calendar text-purple-600 mr-1"></i> Einddatum
+                    </label>
+                    <input type="date" name="due_date" id="id_due_date"
+                        class="w-full rounded-lg border {% if form.due_date.errors %}border-red-500{% else %}border-gray-300{% endif %} shadow-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500 py-3 px-4"
+                        value="{% if form.instance.due_date %}{{ form.instance.due_date|date:'Y-m-d' }}{% endif %}">
+                    {% if form.due_date.errors %}
+                        <p class="text-red-600 text-sm mt-1"><i class="fas fa-exclamation-circle mr-1"></i>{{ form.due_date.errors.0 }}</p>
+                    {% endif %}
+                </div>
+
+                <!-- Description -->
+                <div>
+                    <label for="id_description" class="block text-sm font-semibold text-gray-700 mb-2">
+                        <i class="fas fa-align-left text-purple-600 mr-1"></i> Beschrijving
+                    </label>
+                    <textarea name="description" id="id_description" rows="6" placeholder="Detailleerde beschrijving van de taak..."
+                        class="w-full rounded-lg border {% if form.description.errors %}border-red-500{% else %}border-gray-300{% endif %} shadow-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500 py-3 px-4 resize-none">{{ form.instance.description }}</textarea>
+                    {% if form.description.errors %}
+                        <p class="text-red-600 text-sm mt-1"><i class="fas fa-exclamation-circle mr-1"></i>{{ form.description.errors.0 }}</p>
+                    {% endif %}
+                </div>
+
+                <!-- Completion Status -->
+                <div class="flex items-center space-x-3 bg-purple-50 p-4 rounded-lg border border-purple-200">
+                    <input type="checkbox" name="is_completed" id="id_is_completed"
+                        class="w-5 h-5 text-green-600 border-gray-300 rounded focus:ring-green-500"
+                        {% if form.instance.is_completed %}checked{% endif %}>
+                    <label for="id_is_completed" class="text-sm font-medium text-gray-700">
+                        <i class="fas fa-check-circle text-green-600 mr-1"></i> Taak afgerond
+                    </label>
+                </div>
+
+                <!-- Buttons -->
+                <div class="flex gap-4 pt-4">
+                    <a href="{% url 'eventaflow:todo_list' %}" class="flex-1 border border-gray-300 text-gray-700 py-3 px-4 rounded-lg hover:bg-gray-50 transition font-semibold flex items-center justify-center">
+                        <i class="fas fa-times mr-2"></i> Annuleren
+                    </a>
+                    <button type="submit" class="flex-1 bg-purple-600 text-white py-3 px-4 rounded-lg hover:bg-purple-700 transition font-semibold shadow-lg shadow-purple-100 flex items-center justify-center">
+                        <i class="fas fa-save mr-2"></i> Opslaan
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    // Auto-submit filters on change
+    const filterForm = document.getElementById('filter-form');
+    if (filterForm) {
+        filterForm.querySelectorAll('select').forEach(select => {
+            select.addEventListener('change', () => {
+                filterForm.submit();
+            });
+        });
+    }
+</script>
+
+{% endblock content %}

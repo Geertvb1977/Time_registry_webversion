@@ -16,9 +16,9 @@ from django.urls import reverse_lazy
 from django.views.generic.base import RedirectView
 import openpyxl
 
-from .models import Company, UserProfile, Customer, Project, TimeRegistry
+from .models import Company, UserProfile, Customer, Project, TimeRegistry, Todo
 from .mixins import TenantObjectMixin
-from .forms import RegistrationForm
+from .forms import RegistrationForm, TodoForm
 
 
 # 1. Het Dashboard (Hoofdpagina)
@@ -393,3 +393,94 @@ def stop_timer(request, timer_id):
         timer.description = request.POST.get('description')
         timer.save()
     return redirect('eventaflow:dashboard')
+
+
+# 5. To-Do List View
+class TodoListView(LoginRequiredMixin, View):
+    """View voor het beheren van taken (to-do's)"""
+    template_name = 'dashboard/to-do-beheer.html'
+
+    def get_context_data(self, request):
+        company = request.user.profile.company
+        
+        # Haal alle customers voor het bedrijf op
+        customers = Customer.objects.filter(company=company)
+        
+        # Haal alle projecten voor het bedrijf op
+        projects = Project.objects.filter(company=company)
+        
+        # Haal alle teamleden op (company members)
+        company_members = company.members.all()
+        
+        # Basis queryset voor todos
+        todos = Todo.objects.filter(company=company).select_related('user', 'project_id', 'customer_id')
+        
+        # Filtering op customer
+        customer_id = request.GET.get('customer')
+        if customer_id:
+            todos = todos.filter(customer_id__id=customer_id)
+        
+        # Filtering op project
+        project_id = request.GET.get('project')
+        if project_id:
+            todos = todos.filter(project_id__id=project_id)
+        
+        # Filtering op completion status
+        is_completed = request.GET.get('is_completed')
+        if is_completed == 'true':
+            todos = todos.filter(is_completed=True)
+        elif is_completed == 'false':
+            todos = todos.filter(is_completed=False)
+        
+        # Sorteer de todos
+        todos = todos.order_by('-created_at')
+        
+        return {
+            'customers': customers,
+            'projects': projects,
+            'company_members': company_members,
+            'todos': todos,
+            'form': TodoForm()
+        }
+
+    def get(self, request):
+        context = self.get_context_data(request)
+        return render(request, self.template_name, context)
+
+    def post(self, request):
+        try:
+            with transaction.atomic():
+                form = TodoForm(request.POST)
+                
+                if form.is_valid():
+                    todo = form.save(commit=False)
+                    todo.company = request.user.profile.company
+                    
+                    # Als geen user is geselecteerd, zet het op de huidige gebruiker
+                    if not todo.user:
+                        todo.user = request.user
+                    
+                    todo.save()
+                    messages.success(request, 'Taak succesvol opgeslagen!')
+                    return redirect('eventaflow:todo_list')
+                else:
+                    context = self.get_context_data(request)
+                    context['form'] = form
+                    return render(request, self.template_name, context)
+        except Exception as e:
+            messages.error(request, f'Fout bij opslaan taak: {e}')
+            context = self.get_context_data(request)
+            return render(request, self.template_name, context)
+
+
+# 6. Toggle Todo Completion Status
+@login_required
+def toggle_todo(request, todo_id):
+    """Toggle de completion status van een taak"""
+    if request.method == 'POST':
+        todo = get_object_or_404(Todo, id=todo_id, company=request.user.profile.company)
+        todo.is_completed = not todo.is_completed
+        todo.save()
+        messages.success(request, 'Taak status bijgewerkt!')
+    
+    return redirect('eventaflow:todo_list')
