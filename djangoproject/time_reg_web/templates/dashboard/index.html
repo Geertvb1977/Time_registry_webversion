@@ -125,7 +125,102 @@
                     </table>
                 </div>
             </div>
+        
+            <!-- To-do Overzicht met Kleurcodering -->
+            <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden gap-6 mt-8">
+                <div class="px-6 py-5 bg-gray-50 border-b border-gray-200 flex justify-between items-center">
+                    <div>
+                        <h2 class="text-lg font-bold text-gray-900">Mijn To-do's</h2>
+                        <p class="text-xs text-gray-500">Geselecteerd op deadline en prioriteit</p>
+                    </div>
+                    <a href="{% url 'eventaflow:todo_list' %}" class="px-4 py-2 bg-blue-50 text-blue-600 rounded-lg text-sm font-bold hover:bg-blue-100 transition flex items-center">
+                        Beheer <i class="fas fa-cog ml-2"></i>
+                    </a>
+                </div>
+
+                <!-- Snelle Filters -->
+                <div class="px-6 py-3 bg-white border-b border-gray-100 flex flex-wrap gap-4">
+                    <form method="GET" class="flex flex-wrap gap-3">
+                        <select name="customer" onchange="this.form.submit()" class="text-xs rounded-lg border-gray-300 focus:ring-blue-500">
+                            <option value="">Alle Klanten</option>
+                            {% for c in customers %}
+                                <option value="{{ c.id }}" {% if request.GET.customer == c.id|stringformat:"s" %}selected{% endif %}>{{ c.customer_name }}</option>
+                            {% endfor %}
+                        </select>
+                        <select name="is_completed" onchange="this.form.submit()" class="text-xs rounded-lg border-gray-300 focus:ring-blue-500">
+                            <option value="false" {% if request.GET.is_completed == "false" or not request.GET.is_completed %}selected{% endif %}>Openstaand</option>
+                            <option value="true" {% if request.GET.is_completed == "true" %}selected{% endif %}>Voltooid</option>
+                        </select>
+                    </form>
+                </div>
+
+                <div class="divide-y divide-gray-100">
+                    {% for todo in todos %}
+                        {% if todo.due_date|date:"Y-m-d" == today|date:"Y-m-d" %}
+                            <!-- is_today is True -->
+                        {% endif %}
+
+                        {% if todo.due_date|date:"Y-m-d" < today|date:"Y-m-d" %}
+                            <!-- is_overdue is True -->
+                        {% endif %}
+                        <div class="p-5 transition-all hover:bg-gray-50 border-l-4 
+                            {% if not todo.is_completed %}
+                                {% if is_today %}border-green-500 bg-green-50/30{% elif is_overdue %}border-red-500 bg-red-50/30{% else %}border-transparent{% endif %}
+                            {% else %}
+                                border-transparent
+                            {% endif %}">
+                            
+                            <div class="flex items-start gap-4">
+                                <!-- Status Toggle -->
+                                <form method="POST" action="{% url 'eventaflow:todo_toggle' todo.id %}" class="mt-1">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="next" value="{{ request.path }}?{{ request.GET.urlencode }}">
+                                    <input type="checkbox" onchange="this.form.submit()" {% if todo.is_completed %}checked{% endif %}
+                                        class="w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer">
+                                </form>
+
+                                <!-- Content -->
+                                <div class="flex-1 min-w-0">
+                                    <div class="flex items-center flex-wrap gap-2 mb-1">
+                                        <a href="{% url 'eventaflow:todo_list' %}?edit={{ todo.id }}" class="text-sm font-bold text-gray-900 hover:text-blue-600 transition-colors truncate {% if todo.is_completed %}line-through text-gray-400{% endif %}">
+                                            {{ todo.title }}
+                                        </a>
+                                        <span class="text-[10px] font-black px-2 py-0.5 rounded uppercase {% if todo.priority == 1 %}bg-red-100 text-red-700{% elif todo.priority == 2 %}bg-yellow-100 text-yellow-700{% else %}bg-green-100 text-green-700{% endif %}">
+                                            P{{ todo.priority }}
+                                        </span>
+                                    </div>
+
+                                    <div class="flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-gray-500 mb-2">
+                                        <span class="flex items-center font-medium"><i class="fas fa-briefcase mr-1.5 text-blue-400"></i>{{ todo.project_id.project_name }}</span>
+                                        {% if todo.due_date %}
+                                            <span class="flex items-center {% if is_overdue and not todo.is_completed %}text-red-600 font-bold{% elif is_today and not todo.is_completed %}text-green-600 font-bold{% endif %}">
+                                                <i class="far fa-calendar-alt mr-1.5"></i> 
+                                                {% if is_today %}VANDAAG{% else %}{{ todo.due_date|date:"d-m-Y" }}{% endif %}
+                                            </span>
+                                        {% endif %}
+                                    </div>
+
+                                    {% if todo.description %}
+                                        <p class="text-xs text-gray-600 line-clamp-2 italic leading-relaxed">
+                                            {{ todo.description|truncatechars:120 }}
+                                        </p>
+                                    {% endif %}
+                                </div>
+
+                                <!-- Ga naar beheer pijl -->
+                                <a href="{% url 'eventaflow:todo_list' %}?edit={{ todo.id }}" class="self-center p-2 text-gray-300 hover:text-blue-500 transition-colors">
+                                    <i class="fas fa-chevron-right"></i>
+                                </a>
+                            </div>
+                        </div>
+                        {% endfor %}
+                        {% if todos|length == 0 %}
+                        <div class="p-12 text-center text-gray-400 text-sm">Geen actieve taken gevonden.</div>
+                    {% endif %}
+                </div>
+            </div>
         </div>
+
 
     </div>
 {% endblock content %}

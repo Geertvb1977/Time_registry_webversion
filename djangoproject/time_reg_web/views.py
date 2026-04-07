@@ -22,21 +22,56 @@ from .forms import RegistrationForm, TodoForm
 
 
 # 1. Het Dashboard (Hoofdpagina)
-class DashboardView(TenantObjectMixin, ListView):
-    model = Project
+class DashboardView(LoginRequiredMixin, View):
+    """View voor het dashboard (index) met projectoverzicht en interactieve to-do lijst."""
     template_name = 'dashboard/index.html'
-    context_object_name = 'projects'
 
+    def get_context_data(self, request):
+        company = request.user.profile.company
+        today = timezone.now().date()
+        
+        # Projecten ophalen
+        projects = Project.objects.filter(company=company).order_by('project_name')
+        
+        # Actieve timer ophalen
+        active_timer = TimeRegistry.objects.filter(user=request.user, end_time__isnull=True).first()
+        
+        # Klanten voor de filters
+        customers = Customer.objects.filter(company=company)
 
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context['active_timer'] = TimeRegistry.objects.filter(user=self.request.user, end_time__isnull=True).first()
-        # Filter klanten op het bedrijf van de ingelogde gebruiker
-        if self.request.user.is_authenticated:
-            context['customers'] = Customer.objects.filter(
-                company=self.request.user.profile.company
-            )
-        return context
+        # TO-DO LOGICA
+        todos = Todo.objects.filter(company=company).select_related('project_id', 'customer_id', 'user')
+        
+        # Filters verwerken
+        customer_filter = request.GET.get('customer')
+        if customer_filter:
+            todos = todos.filter(customer_id__id=customer_filter)
+            
+        project_filter = request.GET.get('project')
+        if project_filter:
+            todos = todos.filter(project_id__id=project_filter)
+
+        # Default op dashboard: toon enkel onvoltooide taken tenzij anders gevraagd
+        is_completed = request.GET.get('is_completed', 'false')
+        if is_completed == 'true':
+            todos = todos.filter(is_completed=True)
+        elif is_completed == 'false':
+            todos = todos.filter(is_completed=False)
+
+        # Sortering: 1. Datum (oplopend), 2. Prioriteit (1=hoogst), 3. Aanmaakdatum
+        todos = todos.order_by('due_date', 'priority', '-created_at')
+
+        return {
+            'projects': projects,
+            'active_timer': active_timer,
+            'customers': customers,
+            'todos': todos,
+            'today': today,  # Nodig voor de kleurcodes in de template
+        }
+
+    def get(self, request):
+        context = self.get_context_data(request)
+        return render(request, self.template_name, context)
 
 
 # 2. Klanten Beheer (Aanmaken) - Aangepast om handmatig company te koppelen
