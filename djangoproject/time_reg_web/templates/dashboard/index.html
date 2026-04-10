@@ -147,6 +147,12 @@
                                 <option value="{{ c.id }}" {% if request.GET.customer == c.id|stringformat:"s" %}selected{% endif %}>{{ c.customer_name }}</option>
                             {% endfor %}
                         </select>
+                        <select name="divisie" onchange="this.form.submit()" class="text-xs rounded-lg border-gray-300 focus:ring-blue-500">
+                            <option value="">Alle Divisies</option>
+                            {% for d in divisies %}
+                                <option value="{{ d.id }}" {% if request.GET.divisie == d.id|stringformat:"s" %}selected{% endif %}>{{ d.divisie_name }}</option>
+                            {% endfor %}
+                        </select>
                         <select name="is_completed" onchange="this.form.submit()" class="text-xs rounded-lg border-gray-300 focus:ring-blue-500">
                             <option value="false" {% if request.GET.is_completed == "false" or not request.GET.is_completed %}selected{% endif %}>Openstaand</option>
                             <option value="true" {% if request.GET.is_completed == "true" %}selected{% endif %}>Voltooid</option>

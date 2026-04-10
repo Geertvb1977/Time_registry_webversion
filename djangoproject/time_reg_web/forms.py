@@ -7,7 +7,7 @@ from django.db import transaction
 from django.shortcuts import render, redirect
 from django.views import View
 from django.contrib.auth.forms import PasswordResetForm
-from .models import Company, UserProfile, Todo
+from .models import Company, UserProfile, Todo, Divisies
 
 
 # 1. Het Formulier
@@ -58,12 +58,15 @@ class TodoForm(forms.ModelForm):
     
     class Meta:
         model = Todo
-        fields = ['customer_id', 'project_id', 'user', 'priority', 'title', 'due_date', 'description', 'is_completed']
+        fields = ['customer_id', 'project_id', 'divisie', 'user', 'priority', 'title', 'due_date', 'description', 'is_completed']
         widgets = {
             'customer_id': forms.Select(attrs={
                 'class': 'w-full rounded-lg border border-gray-300 shadow-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500 py-3 px-4'
             }),
             'project_id': forms.Select(attrs={
+                'class': 'w-full rounded-lg border border-gray-300 shadow-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500 py-3 px-4'
+            }),
+            'divisie': forms.Select(attrs={
                 'class': 'w-full rounded-lg border border-gray-300 shadow-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500 py-3 px-4'
             }),
             'user': forms.Select(attrs={
@@ -87,5 +90,19 @@ class TodoForm(forms.ModelForm):
             }),
             'is_completed': forms.CheckboxInput(attrs={
                 'class': 'w-5 h-5 text-green-600 border-gray-300 rounded focus:ring-green-500'
+            })
+        }
+
+
+class DivisieForm(forms.ModelForm):
+    """Formulier voor aanmaken van divisies."""
+    
+    class Meta:
+        model = Divisies
+        fields = ['divisie_name']
+        widgets = {
+            'divisie_name': forms.TextInput(attrs={
+                'class': 'w-full rounded-lg border border-gray-300 shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 py-3 px-4',
+                'placeholder': 'Bijv. Ontwikkeling, Marketing, Verkoop'
             })
         }

@@ -16,9 +16,9 @@ from django.urls import reverse_lazy
 from django.views.generic.base import RedirectView
 import openpyxl
 
-from .models import Company, UserProfile, Customer, Project, TimeRegistry, Todo
+from .models import Company, UserProfile, Customer, Project, TimeRegistry, Todo, Divisies
 from .mixins import TenantObjectMixin
-from .forms import RegistrationForm, TodoForm
+from .forms import RegistrationForm, TodoForm, DivisieForm
 
 
 # 1. Het Dashboard (Hoofdpagina)
@@ -38,9 +38,10 @@ class DashboardView(LoginRequiredMixin, View):
         
         # Klanten voor de filters
         customers = Customer.objects.filter(company=company)
+        divisies = Divisies.objects.filter(company=company)
 
         # TO-DO LOGICA
-        todos = Todo.objects.filter(company=company).select_related('project_id', 'customer_id', 'user')
+        todos = Todo.objects.filter(company=company, user=request.user).select_related('project_id', 'customer_id', 'user')
         
         # Filters verwerken
         customer_filter = request.GET.get('customer')
@@ -50,6 +51,10 @@ class DashboardView(LoginRequiredMixin, View):
         project_filter = request.GET.get('project')
         if project_filter:
             todos = todos.filter(project_id__id=project_filter)
+            
+        divisie_filter = request.GET.get('divisie')
+        if divisie_filter:
+            todos = todos.filter(divisie__id=divisie_filter)
 
         # Default op dashboard: toon enkel onvoltooide taken tenzij anders gevraagd
         is_completed = request.GET.get('is_completed', 'false')
@@ -65,6 +70,7 @@ class DashboardView(LoginRequiredMixin, View):
             'projects': projects,
             'active_timer': active_timer,
             'customers': customers,
+            'divisies': divisies,
             'todos': todos,
             'today': today,  # Nodig voor de kleurcodes in de template
         }
@@ -329,6 +335,8 @@ class CompanyDetailView(LoginRequiredMixin, View):
         return {
             'company': company,
             'company_employees': UserProfile.objects.filter(company=company),
+            'divisies': Divisies.objects.filter(company=company),
+            'divisie_form': DivisieForm(),
             # 'projects': Project.objects.filter(customer__company=company) # Veronderstelt Project -> Customer -> Company
             }
 
@@ -380,6 +388,38 @@ class CompanyDetailView(LoginRequiredMixin, View):
                 messages.success(request, f"{user_name} is verwijderd uit het bedrijf.")
             except UserProfile.DoesNotExist:
                 messages.error(request, "Medewerker niet gevonden.")
+
+        # 3. Divisie toevoegen
+        elif 'add_divisie' in request.POST:
+            divisie_name = request.POST.get('divisie_name', '').strip()
+            if not divisie_name:
+                messages.error(request, "Voer alstublieft een divisienaam in.")
+            else:
+                try:
+                    with transaction.atomic():
+                        # Check if divisie already exists for this company
+                        if Divisies.objects.filter(company=company, divisie_name__iexact=divisie_name).exists():
+                            messages.warning(request, f"Divisie '{divisie_name}' bestaat al.")
+                        else:
+                            # Create new divisie
+                            divisie = Divisies.objects.create(
+                                divisie_name=divisie_name,
+                                company=company
+                            )
+                            messages.success(request, f"Divisie '{divisie_name}' is toegevoegd.")
+                except Exception as e:
+                    messages.error(request, f"Fout bij aanmaken divisie: {e}")
+
+        # 4. Divisie verwijderen
+        elif 'remove_divisie' in request.POST:
+            divisie_id = request.POST.get('remove_divisie')
+            try:
+                divisie = Divisies.objects.get(id=divisie_id, company=company)
+                divisie_name = divisie.divisie_name
+                divisie.delete()
+                messages.success(request, f"Divisie '{divisie_name}' is verwijderd.")
+            except Divisies.DoesNotExist:
+                messages.error(request, "Divisie niet gevonden.")
 
         return render(request, self.template_name, self.get_context_data(company))
 
@@ -441,6 +481,7 @@ class TodoListView(LoginRequiredMixin, View):
         # Haal basisgegevens op voor dropdowns
         customers = Customer.objects.filter(company=company)
         projects = Project.objects.filter(company=company)
+        divisies = Divisies.objects.filter(company=company)
         company_members = company.members.all()
         
         # Filtering logica voor de linkerlijst
@@ -453,6 +494,10 @@ class TodoListView(LoginRequiredMixin, View):
         project_filter = request.GET.get('project')
         if project_filter:
             todos = todos.filter(project_id__id=project_filter)
+        
+        divisie_filter = request.GET.get('divisie')
+        if divisie_filter:
+            todos = todos.filter(divisie__id=divisie_filter)
         
         is_completed = request.GET.get('is_completed')
         if is_completed == 'true':
@@ -472,6 +517,7 @@ class TodoListView(LoginRequiredMixin, View):
         return {
             'customers': customers,
             'projects': projects,
+            'divisies': divisies,
             'company_members': company_members,
             'todos': todos,
             'form': TodoForm(instance=form_instance),

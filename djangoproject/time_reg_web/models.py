@@ -72,6 +72,27 @@ class Customer(models.Model):
         return self.customer_name
 
 
+class Divisies(models.Model):
+    """ Model voor divisies binnen een bedrijf """
+    divisie_id = models.IntegerField()
+    divisie_name = models.CharField(max_length=255)
+    company = models.ForeignKey(Company, on_delete=models.CASCADE, related_name='divisies')
+
+    class Meta:
+        unique_together = ('company', 'divisie_id')
+
+    def save(self, *args, **kwargs):
+        if not self.divisie_id:
+            last_id = Divisies.objects.filter(
+                company=self.company
+            ).aggregate(Max('divisie_id'))['divisie_id__max']
+            self.divisie_id = (last_id or 0) + 1
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return self.divisie_name
+
+
 class Project(models.Model):
     """ Model voor projecten binnen een bedrijf """
     company = models.ForeignKey(Company, on_delete=models.CASCADE, related_name='projects')
@@ -103,6 +124,7 @@ class TimeRegistry(models.Model):
     company = models.ForeignKey(Company, on_delete=models.CASCADE, related_name='time_registrys')
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='time_registrys')
     project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name='time_registrys')
+    divisie = models.ForeignKey(Divisies, on_delete=models.SET_NULL, null=True, blank=True, related_name='time_registrys')
     start_time = models.DateTimeField()
     end_time = models.DateTimeField(null=True, blank=True)
     description = models.TextField(blank=True)
@@ -117,6 +139,7 @@ class Todo(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='todos')
     customer_id = models.ForeignKey(Customer, on_delete=models.CASCADE, related_name='todos')
     project_id = models.ForeignKey(Project, on_delete=models.CASCADE, related_name='todos')
+    divisie = models.ForeignKey(Divisies, on_delete=models.SET_NULL, null=True, blank=True, related_name='todos')
     title = models.CharField(max_length=255)
     description = models.TextField(blank=True)
     priority = models.IntegerField(default=3)  # 1 = Hoog, 2 = Midden, 3 = Laag
@@ -132,6 +155,7 @@ class Milstones(models.Model):
     """ Model voor mijlpalen binnen een bedrijf """
     company = models.ForeignKey(Company, on_delete=models.CASCADE, related_name='milstones')
     project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name='milstones')
+    divisie = models.ForeignKey(Divisies, on_delete=models.SET_NULL, null=True, blank=True, related_name='milstones')
     title = models.CharField(max_length=255)
     description = models.TextField(blank=True)
     due_date = models.DateField(null=True, blank=True)
