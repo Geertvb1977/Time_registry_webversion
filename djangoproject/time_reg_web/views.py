@@ -16,7 +16,7 @@ from django.urls import reverse_lazy
 from django.views.generic.base import RedirectView
 import openpyxl
 
-from .models import Company, UserProfile, Customer, Project, TimeRegistry, Todo, Divisies
+from .models import Company, UserProfile, Customer, Project, TimeRegistry, Todo, Divisies, Milstones
 from .mixins import TenantObjectMixin
 from .forms import RegistrationForm, TodoForm, DivisieForm
 
@@ -573,3 +573,32 @@ def toggle_todo(request, todo_id):
         messages.success(request, 'Taak status bijgewerkt!')
     
     return redirect('eventaflow:todo_list')
+
+
+class MilestonesView(LoginRequiredMixin, View):
+    """View voor het beheren van taken Milestones met edit-functionaliteit via URL parameters."""
+    template_name = 'dashboard/milestones.html'
+
+    def get(self, request):
+        company = request.user.profile.company
+        
+        # Haal basisgegevens op voor dropdowns
+        projects = Project.objects.filter(company=company)
+        divisies = Divisies.objects.filter(company=company)
+        
+        # Alle mijlpalen van het bedrijf
+        milestones = Milstones.objects.filter(company=company).select_related('project', 'divisie')
+        
+        # Bewerkingslogica: check of er een ?edit=ID parameter is
+        form_instance = None
+        edit_id = request.GET.get('edit')
+        if edit_id:
+            form_instance = get_object_or_404(Milstones, id=edit_id, company=company)
+        
+        return render(request, self.template_name, context = {
+            'projects': projects,
+            'divisies': divisies,
+            'milestones': milestones,
+            'form': DivisieForm(instance=form_instance),
+            'edit_id': edit_id
+        })

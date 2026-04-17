@@ -52,7 +52,7 @@ Dit:
 
 ```bash
 # In je project directory
-docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d
 ```
 
 Dit:
@@ -68,10 +68,10 @@ Dit:
 docker ps
 
 # Check Traefik logs
-docker compose -f /opt/traefik/docker-compose.yml logs traefik
+docker-compose -f /opt/traefik/docker-compose.yml logs traefik
 
 # Check Django logs
-docker compose logs web
+docker-compose logs web
 ```
 
 ## Architecture
@@ -111,15 +111,15 @@ Geen manual cert management nodig!
 ```bash
 cd /path/to/project
 git pull
-docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
+docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
 ```
 
 ### Update Traefik:
 
 ```bash
 cd /opt/traefik
-docker compose pull
-docker compose up -d
+docker-compose pull
+docker-compose up -d
 ```
 
 ## Troubleshooting
@@ -139,7 +139,7 @@ sudo chmod 666 /var/run/docker.sock
 If you hit rate limits, Let's Encrypt will backoff. Check logs:
 
 ```bash
-docker compose -f /opt/traefik/docker-compose.yml logs traefik | grep acme
+docker-compose -f /opt/traefik/docker-compose.yml logs traefik | grep acme
 ```
 
 ### Django app not responding
@@ -149,7 +149,7 @@ docker compose -f /opt/traefik/docker-compose.yml logs traefik | grep acme
 docker ps | grep time_registry
 
 # Check logs
-docker compose logs web
+docker-compose logs web
 
 # Check network
 docker network inspect traefik_network
@@ -168,7 +168,7 @@ docker network inspect traefik_network
 ### Backup database:
 
 ```bash
-docker compose exec db pg_dump -U $POSTGRES_USER $POSTGRES_DB > backup.sql
+docker-compose exec db pg_dump -U $POSTGRES_USER $POSTGRES_DB > backup.sql
 ```
 
 ### Backup SSL certificates:
@@ -180,5 +180,5 @@ cp /opt/traefik/acme.json /backups/acme.json.backup
 ### Restore database:
 
 ```bash
-docker compose exec -T db psql -U $POSTGRES_USER $POSTGRES_DB < backup.sql
+docker-compose exec -T db psql -U $POSTGRES_USER $POSTGRES_DB < backup.sql
 ```

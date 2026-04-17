@@ -133,6 +133,22 @@ class TimeRegistry(models.Model):
         return f"{self.user.username} - {self.project.project_name} - {self.start_time}"
 
 
+class Milstones(models.Model):
+    """ Model voor mijlpalen binnen een bedrijf """
+    company = models.ForeignKey(Company, on_delete=models.CASCADE, related_name='milstones')
+    project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name='milstones')
+    divisie = models.ForeignKey(Divisies, on_delete=models.SET_NULL, null=True, blank=True, related_name='milstones')
+    title = models.CharField(max_length=255)
+    description = models.TextField(blank=True)
+    due_date = models.DateField(null=True, blank=True)
+    is_completed = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return self.title
+
+
+
 class Todo(models.Model):
     """ Model voor taken binnen een bedrijf """
     company = models.ForeignKey(Company, on_delete=models.CASCADE, related_name='todos')
@@ -146,21 +162,7 @@ class Todo(models.Model):
     due_date = models.DateField(null=True, blank=True)
     is_completed = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
-
-    def __str__(self):
-        return self.title
-
-
-class Milstones(models.Model):
-    """ Model voor mijlpalen binnen een bedrijf """
-    company = models.ForeignKey(Company, on_delete=models.CASCADE, related_name='milstones')
-    project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name='milstones')
-    divisie = models.ForeignKey(Divisies, on_delete=models.SET_NULL, null=True, blank=True, related_name='milstones')
-    title = models.CharField(max_length=255)
-    description = models.TextField(blank=True)
-    due_date = models.DateField(null=True, blank=True)
-    is_completed = models.BooleanField(default=False)
-    created_at = models.DateTimeField(auto_now_add=True)
+    milestone = models.ForeignKey(Milstones, on_delete=models.SET_NULL, null=True, blank=True, related_name='todos')
 
     def __str__(self):
         return self.title
