@@ -19,4 +19,5 @@ urlpatterns = [
     path('todos/', views.TodoListView.as_view(), name='todo_list'),
     path('todos/<int:todo_id>/toggle/', views.toggle_todo, name='todo_toggle'),
     path('milestones/', views.MilestonesView.as_view(), name='milestone_list'),
+    path('milestones/<int:milestone_id>/toggle/', views.toggle_milestone, name='milestone_toggle'),
 ]

@@ -51,18 +51,10 @@
                     <div class="px-5 py-4 bg-gray-50 border-b border-gray-200 flex justify-between items-center">
                         <h2 class="font-bold text-gray-800 flex items-center"><i class="fas fa-sliders-h mr-2 text-blue-500"></i> Filters</h2>
                         {% if request.GET.customer or request.GET.project or request.GET.divisie or request.GET.is_completed %}
-                            <a href="{% url 'eventaflow:todo_list' %}" class="text-xs text-blue-600 hover:underline">Wis filters</a>
+                            <a href="{% url 'eventaflow:milestone_list' %}" class="text-xs text-blue-600 hover:underline">Wis filters</a>
                         {% endif %}
                     </div>
                     <form id="filter-form" method="GET" class="p-5 space-y-4">
-                        <div>
-                            <select name="customer" class="w-full rounded-lg border-gray-300 text-sm focus:ring-blue-500 focus:border-blue-500 transition-shadow">
-                                <option value="">Alle Klanten</option>
-                                {% for c in customers %}
-                                    <option value="{{ c.id }}" {% if request.GET.customer == c.id|stringformat:"s" %}selected{% endif %}>{{ c.customer_name }}</option>
-                                {% endfor %}
-                            </select>
-                        </div>
                         <div>
                             <select name="project" class="w-full rounded-lg border-gray-300 text-sm focus:ring-blue-500 focus:border-blue-500">
                                 <option value="">Alle Projecten</option>
@@ -90,38 +82,42 @@
                 </section>
 
                 <!-- Milestone Lijst -->
-                <div class="bg-white p-6 rounded-lg shadow-sm">
-                    <h2 class="text-xl font-semibold mb-4">Milestones Lijst</h2>
-                    {% if milestones %}
-                        <ul class="divide-y divide-gray-200">
-                            {% for milestone in milestones %}
-                                <li class="py-4 flex items-center justify-between">
-                                    <div class="flex items-center gap-4">
-                                        <div class="flex-shrink-0">
-                                            {% if milestone.status == 'completed' %}
-                                                <i class="fas fa-check-circle text-green-500 text-lg"></i>
-                                            {% elif milestone.status == 'in_progress' %}
-                                                <i class="fas fa-spinner text-yellow-500 text-lg animate-spin"></i>
-                                            {% else %}
-                                                <i class="fas fa-hourglass-start text-gray-400 text-lg"></i>
-                                            {% endif %}
-                                        </div>
-                                        <div>
-                                            <p class="text-sm font-medium text-gray-900">{{ milestone.title }}</p>
-                                            <p class="text-sm text-gray-500">Vervaldatum: {{ milestone.due_date|date:"d M Y" }}</p>
-                                        </div>
-                                    </div>
-                                    <a href="{% url 'eventaflow:milestone_detail' milestone.id %}" class="text-blue-600 hover:text-blue-800 transition-colors">
-                                        <i class="fas fa-chevron-right"></i>
-                                    </a>
-                                </li>
-                            {% endfor %}
-                        </ul>
-                    {% else %}
-                        <p class="text-sm text-gray-500">Geen milestones gevonden. Probeer een andere filter of voeg een nieuwe milestone toe.</p>
-                    {% endif %}
+                 <section class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                     <div class="px-5 py-4 bg-gray-50 border-b border-gray-200 flex justify-between items-center">
+                        <h2 class="font-bold text-gray-800 flex items-center"><i class="fas fa-tasks mr-2 text-green-500"></i> Milestones</h2>
                     </div>
-                </div>
+                    <div class="divide-y divide-gray-100 max-h-[500px] overflow-y-auto">
+                        {% for milestone in milestones %}
+                            <div class="group related flex items-center p-4 hover:bg-blue-50 transition-colors {% if edit_id == milestone.id|stringformat:'s' %}bg-blue-50 border-l-4 border-blue-600 shadow-inner{% endif %}">
+                                <!-- Direct Toggle Checkbox-->
+                                <form method="POST" action="{% url 'eventaflow:milestone_toggle' milestone.id %}" class="mr-4">
+                                    {% csrf_token %}
+                                    <input type="checkbox" onchange="this.form.submit()" {% if milestone.is_completed %}checked{% endif %}
+                                        class="w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer">
+                                </form>
+
+                                <!-- Edit Link -->
+                                <a href="?edit={{ milestone.id }}{% if request.GET.customer %}&customer={{ request.GET.customer }}{% endif %}{% if request.GET.project %}&project={{ request.GET.project }}{% endif %}{% if request.GET.is_completed %}&is_completed={{ request.GET.is_completed }}{% endif %}" 
+                                class="flex-1 min-w-0 pr-4">
+                                    <h3 class="text-sm font-semibold text-gray-900 truncate {% if milestone.is_completed %}line-through text-gray-400{% endif %}">
+                                        {{ milestone.title }}
+                                    </h3>
+                                    <div class="flex items-center gap-2 mt-1">
+                                        <span class="text-[10px] text-gray-500 truncate">{{ milestone.due_date|date:"d-m-Y"|default:"Geen deadline" }}</span>
+                                    </div>
+                                </a>
+                                <i class="fas fa-chevron-right text-gray-300 group-hover:text-blue-400 group-hover:translate-x-1 transition-all text-xs"></i>
+                            </div>
+                        {% empty %}
+                            <div class="p-10 text-center">
+                                <i class="fas fa-tasks text-gray-200 text-4xl mb-3"></i>
+                                <p class="text-gray-400 text-sm">Geen taken gevonden.</p>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </section>
+            </div>
+
 
                 <!-- RECHTER KOLOM (2/3): Formulier -->
                 <div class="lg:col-span-2">
@@ -133,11 +129,110 @@
                             </h2>
                             <p class="text-blue-100 text-sm mt-1">Wijzig de details en klik op opslaan om de database bij te werken.</p>
                         </div>
+                    <form method="POST" class="p-8 space-y-6">
+                        {% csrf_token %}
+                        <!-- Verborgen ID voor de View om te weten of het een UPDATE is -->
+                        {% if edit_id %}<input type="hidden" name="id" value="{{ edit_id }}">{% endif %}
 
-                    </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                            <!-- Linker Kolom Form -->
+                            <div class="space-y-6">
+
+                                <div>
+                                    <label class="block text-xs font-bold uppercase tracking-widest text-gray-500 mb-2">Project *</label>
+                                    <select name="project" required class="w-full rounded-lg border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500 py-2.5">
+                                        <option value="">-- Selecteer Project --</option>
+                                        {% for p in projects %}
+                                            <option value="{{ p.id }}" {% if form.instance and form.instance.project.id == p.id %}selected{% endif %}>{{ p.project_name }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-bold uppercase tracking-widest text-gray-500 mb-2">Divisie</label>
+                                    <select name="divisie" class="w-full rounded-lg border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500 py-2.5">
+                                        <option value="">-- Selecteer Divisie (optioneel) --</option>
+                                        {% for d in divisies %}
+                                            <option value="{{ d.id }}" {% if form.instance and form.instance.divisie.id == d.id %}selected{% endif %}>{{ d.divisie_name }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+
+                            </div>
+
+                            <!-- Rechter Kolom Form -->
+                            <div class="space-y-6">
+
+                                <div>
+                                    <label class="block text-xs font-bold uppercase tracking-widest text-gray-500 mb-2">Deadline</label>
+                                    <input type="date" name="due_date" value="{{ form.instance.due_date|date:'Y-m-d'|default:'' }}"
+                                        class="w-full rounded-lg border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500 py-2.5 px-4">
+                                </div>
+                                <div class="pt-8">
+                                    <label class="inline-flex items-center cursor-pointer group">
+                                        <div class="relative">
+                                            <input type="checkbox" name="is_completed" id="id_is_completed_form" {% if form.instance and form.instance.is_completed %}checked{% endif %} class="sr-only">
+                                            <div class="w-10 h-5 bg-gray-300 rounded-full shadow-inner group-hover:bg-gray-400 transition-colors"></div>
+                                            <div class="dot absolute w-6 h-6 bg-white rounded-full shadow -left-1 -top-0.5 transition-transform"></div>
+                                        </div>
+                                        <span class="ml-3 text-sm font-bold text-gray-700">Milestone markeren als voltooid</span>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-bold uppercase tracking-widest text-gray-500 mb-2">Titel van de milestone *</label>
+                            <input type="text" name="title" required value="{{ form.instance.title|default:'' }}"
+                                class="w-full rounded-lg border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500 px-4 py-3 text-lg font-medium"
+                                placeholder="Bijv. Projectofferte herzien...">
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-bold uppercase tracking-widest text-gray-500 mb-2">Beschrijving</label>
+                            <textarea name="description" rows="4" class="w-full rounded-lg border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500 px-4 py-3 resize-none"
+                                placeholder="Voeg extra beschrijving toe...">{{ form.instance.description|default:'' }}</textarea>
+                        </div>
+
+                        <!-- Actie Knoppen -->
+                        <div class="flex flex-col sm:flex-row gap-4 pt-8 border-t border-gray-100">
+                            <a href="{% url 'eventaflow:milestone_list' %}" class="order-2 sm:order-1 flex-1 px-6 py-3.5 border border-gray-200 text-gray-600 rounded-xl font-bold hover:bg-gray-50 hover:border-gray-300 transition-all text-center">
+                                Annuleren
+                            </a>
+                            <button type="submit" class="order-1 sm:order-2 flex-[2] px-6 py-3.5 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 hover:shadow-lg transition-all flex items-center justify-center">
+                                <i class="fas fa-check-circle mr-2"></i> {% if edit_id %}Milestone bijwerken{% else %}Milestone aanmaken{% endif %}
+                            </button>
+                        </div>
+
+                    </form>
                 </div>
             </div>
+
         </div>
     </main>
+
+    <style>
+        /* Custom Switch Styling */
+        input:checked ~ .dot {
+            transform: translateX(100%);
+            background-color: #2563eb;
+        }
+        input:checked ~ div:first-child {
+            background-color: #dbeafe;
+        }
+        
+        /* Smooth Scroll voor de lijst */
+        .overflow-y-auto {
+            scrollbar-width: thin;
+            scrollbar-color: #e2e8f0 transparent;
+        }
+    </style>
+
+    <script>
+        // Auto-submit filters op verandering
+        document.querySelectorAll('#filter-form select').forEach(select => {
+            select.addEventListener('change', () => document.getElementById('filter-form').submit());
+        });
+    </script>
+
 </body>
 </html>
