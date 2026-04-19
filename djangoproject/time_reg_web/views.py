@@ -5,6 +5,7 @@ from django.contrib import messages
 from django.views import View
 from django.views.generic import ListView, CreateView, UpdateView
 from django.db import transaction
+from django.db.models import Count, Case, When, IntegerField, Sum, Q, Value
 from django.contrib.auth.models import User
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.decorators import login_required
@@ -661,6 +662,15 @@ class MilestonesView(LoginRequiredMixin, View):
         # Filtering logica voor de linkerlijst
         milestones = Milstones.objects.filter(company=company).select_related(
             "project", "divisie"
+        ).annotate(
+            total_todos=Count('todos'),
+            completed_todos=Sum(
+                Case(
+                    When(todos__is_completed=True, then=Value(1)),
+                    default=Value(0),
+                    output_field=IntegerField()
+                )
+            )
         )
 
         project_filter = request.GET.get("project")
@@ -736,8 +746,19 @@ class MilestonesView(LoginRequiredMixin, View):
         milestones = (
             Milstones.objects.filter(company=company)
             .select_related("project", "divisie")
+            .annotate(
+                total_todos=Count('todos'),
+                completed_todos=Sum(
+                    Case(
+                        When(todos__is_completed=True, then=Value(1)),
+                        default=Value(0),
+                        output_field=IntegerField()
+                    )
+                )
+            )
             .order_by("-created_at")
         )
+
         return {
             "projects": projects,
             "divisies": divisies,

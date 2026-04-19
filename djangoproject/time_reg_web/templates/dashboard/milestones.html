@@ -105,6 +105,19 @@
                                     <div class="flex items-center gap-2 mt-1">
                                         <span class="text-[10px] text-gray-500 truncate">{{ milestone.due_date|date:"d-m-Y"|default:"Geen deadline" }}</span>
                                     </div>
+                                    <div class="mt-2">
+                                        {% if milestone.total_todos == 0 %}
+                                            <div class="w-full bg-blue-200 rounded-full h-1.5">
+                                                <div class="bg-blue-500 h-1.5" style="width: 100%"></div>
+                                            </div>
+                                            <div class="text-[9px] text-gray-400 mt-0.5">Geen todos gekoppeld</div>
+                                        {% else %}
+                                            <div class="w-full bg-red-200 rounded-full h-1.5">
+                                                <div class="bg-green-500 h-1.5" style="width: {% widthratio milestone.completed_todos milestone.total_todos 100 %}%"></div>
+                                            </div>
+                                            <div class="text-[9px] text-gray-400 mt-0.5">{{ milestone.completed_todos|default:0 }}/{{ milestone.total_todos }} todos voltooid</div>
+                                        {% endif %}
+                                    </div>
                                 </a>
                                 <i class="fas fa-chevron-right text-gray-300 group-hover:text-blue-400 group-hover:translate-x-1 transition-all text-xs"></i>
                             </div>
