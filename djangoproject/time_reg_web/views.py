@@ -542,6 +542,7 @@ class TodoListView(LoginRequiredMixin, View):
         customers = Customer.objects.filter(company=company)
         projects = Project.objects.filter(company=company)
         divisies = Divisies.objects.filter(company=company)
+        milestone = Milstones.objects.filter(company=company)
         company_members = company.members.all()
 
         # Filtering logica voor de linkerlijst
@@ -561,9 +562,14 @@ class TodoListView(LoginRequiredMixin, View):
         if divisie_filter:
             todos = todos.filter(divisie__id=divisie_filter)
 
+        milestone_filter = request.GET.get("milestone")
+        if milestone_filter:
+            todos = todos.filter(milestone__id=milestone_filter)
+
         is_completed = request.GET.get("is_completed")
         if is_completed == "true":
             todos = todos.filter(is_completed=True)
+        
         elif is_completed == "false":
             todos = todos.filter(is_completed=False)
 
@@ -582,6 +588,7 @@ class TodoListView(LoginRequiredMixin, View):
             "divisies": divisies,
             "company_members": company_members,
             "todos": todos,
+            "milestone": milestone,
             "form": TodoForm(instance=form_instance),
             "edit_id": edit_id,
         }

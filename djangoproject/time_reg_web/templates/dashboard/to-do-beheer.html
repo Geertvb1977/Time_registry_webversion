@@ -80,6 +80,14 @@
                             </select>
                         </div>
                         <div>
+                            <select name="milestone" class="w-full rounded-lg border-gray-300 text-sm focus:ring-blue-500 focus:border-blue-500">
+                                <option value="">Alle Milestones</option>
+                                {% for m in milestone %}
+                                    <option value="{{ m.id }}" {% if request.GET.milestone == m.id|stringformat:"s" %}selected{% endif %}>{{ m.title }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div>
                             <select name="is_completed" class="w-full rounded-lg border-gray-300 text-sm focus:ring-blue-500 focus:border-blue-500">
                                 <option value="">Status: Alle</option>
                                 <option value="false" {% if request.GET.is_completed == "false" %}selected{% endif %}>Openstaand</option>
@@ -193,6 +201,15 @@
                                         <option value="1" {% if form.instance.priority == 1 %}selected{% endif %}>Hoog</option>
                                         <option value="2" {% if form.instance.priority == 2 or not form.instance.id %}selected{% endif %}>Normaal</option>
                                         <option value="3" {% if form.instance.priority == 3 %}selected{% endif %}>Laag</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-bold uppercase tracking-widest text-gray-500 mb-2">Milestone</label>
+                                    <select name="milestone" class="w-full rounded-lg border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500 py-2.5">
+                                        <option value="">-- Selecteer Milestone (optioneel) --</option>
+                                        {% for m in milestone %}
+                                            <option value="{{ m.id }}" {% if form.instance.milestone and form.instance.milestone.id == m.id %}selected{% endif %}>{{ m.title }}</option>
+                                        {% endfor %}
                                     </select>
                                 </div>
                                 <div>

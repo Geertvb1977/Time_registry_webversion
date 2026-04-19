@@ -68,6 +68,7 @@ class TodoForm(forms.ModelForm):
             "due_date",
             "description",
             "is_completed",
+            "milestone",
         ]
         widgets = {
             "customer_id": forms.Select(
@@ -117,6 +118,11 @@ class TodoForm(forms.ModelForm):
             "is_completed": forms.CheckboxInput(
                 attrs={
                     "class": "w-5 h-5 text-green-600 border-gray-300 rounded focus:ring-green-500"
+                }
+            ),
+            "milestone": forms.Select(
+                attrs={
+                    "class": "w-full rounded-lg border border-gray-300 shadow-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500 py-3 px-4"
                 }
             ),
         }
