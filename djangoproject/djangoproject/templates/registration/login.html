@@ -46,89 +46,105 @@
 
     <!-- Inlog & Registratie Formulier (Jouw code, geïntegreerd in de layout) -->
     <section class="container mx-auto px-4 sm:px-6 lg:px-8 pb-20">
-        <div class="max-w-5xl mx-auto w-full">
-            <div class="bg-white rounded-2xl shadow-xl overflow-hidden flex flex-col md:flex-row border border-gray-200">
-                
-                <!-- LINKER KOLOM: INLOGGEN -->
-                <div class="w-full md:w-1/2 p-8 lg:p-12 bg-gray-50 border-b md:border-b-0 md:border-r border-gray-200">
-                    <div class="h-full flex flex-col justify-center">
-                        <div class="mb-8">
-                            <h2 class="text-2xl font-bold text-gray-900 mb-2">Inloggen</h2>
-                            <p class="text-gray-600 text-sm">Welkom terug! Voer je gegevens in.</p>
-                        </div>
 
-                        <form method="post" action="{% url 'login' %}" class="space-y-5">
-                            {% csrf_token %}
-                            
+    <div class="sm:mx-auto sm:w-full sm:max-w-md text-center mb-8">
+        <h1 class="text-4xl font-extrabold text-blue-600 tracking-tight">Eventaflow</h1>
+        <p class="mt-2 text-base text-gray-500 text-balance">Eén platform voor al je tijdregistratie en projectbeheer.</p>
+    </div>
+
+    <div class="max-w-6xl mx-auto w-full">
+        <div class="bg-white rounded-2xl shadow-xl overflow-hidden flex flex-col md:flex-row border border-gray-200">
+            
+            <!-- LINKER KOLOM: INLOGGEN -->
+            <div class="w-full md:w-1/2 p-8 lg:p-12 bg-gray-50 border-b md:border-b-0 md:border-r border-gray-200">
+                <div class="h-full flex flex-col justify-center">
+                    <div class="mb-8">
+                        <h2 class="text-2xl font-bold text-gray-900 mb-2">Inloggen</h2>
+                        <p class="text-gray-600 text-sm">Welkom terug! Voer je gegevens in.</p>
+                    </div>
+
+                    <form method="post" action="{% url 'login' %}" class="space-y-5">
+                        {% csrf_token %}
+                        <!-- AANPASSING: Bedrijfsnaam veld is verwijderd. Eerst inloggen, daarna kiezen. -->
+                        
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700">Gebruikersnaam</label>
+                            <input type="text" name="username" required 
+                                class="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 outline-none transition-all">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700">Wachtwoord</label>
+                            <input type="password" name="password" required 
+                                class="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 outline-none transition-all">
+                        </div>
+                        <button type="submit" 
+                            class="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 focus:outline-none transition-colors">
+                            Inloggen
+                        </button>
+                        <div class="mt-4 text-center">
+                            <a href="{% url 'password_reset' %}" class="text-sm text-blue-600 hover:text-blue-500 hover:underline">
+                                Wachtwoord vergeten?
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- RECHTER KOLOM: REGISTREREN -->
+            <div class="w-full md:w-1/2 p-8 lg:p-12">
+                <!-- Dit deel kan blijven zoals het is, of je splitst het later op als je invite-only wilt werken -->
+                <div class="h-full flex flex-col justify-center">
+                    <div class="mb-8">
+                        <h2 class="text-2xl font-bold text-gray-900 mb-2">Nieuw Account</h2>
+                        <p class="text-gray-600 text-sm">Start direct met het beheren van je team.</p>
+                    </div>
+
+                    <form method="post" action="{% url 'eventaflow:register_company' %}" class="space-y-4">
+                        {% csrf_token %}
+                        <!-- Form fields blijven hier staan voor nieuwe registraties -->
+                        <!-- ... bestaande registratie velden ... -->
+                        
+                        <!-- TIP VOOR DE MODEL: Zorg dat bij registratie: -->
+                        <!-- 1. User wordt gemaakt -->
+                        <!-- 3. user wordt toegevoegd aan company.members -->
+                        <!-- 4. user.profile.company wordt ingesteld op dit nieuwe bedrijf -->
+
+                        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
                             <div>
                                 <label class="block text-sm font-semibold text-gray-700">Gebruikersnaam</label>
-                                <input type="text" name="username" required 
-                                    class="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 outline-none transition-all">
+                                <input type="text" name="username" required
+                                    class="mt-1 block w-full px-4 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-green-500 focus:border-green-500 outline-none">
                             </div>
+                            <div>
+                                <label class="block text-sm font-semibold text-gray-700">E-mailadres</label>
+                                <input type="email" name="email" required
+                                    class="mt-1 block w-full px-4 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-green-500 focus:border-green-500 outline-none">
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
                             <div>
                                 <label class="block text-sm font-semibold text-gray-700">Wachtwoord</label>
                                 <input type="password" name="password" required 
-                                    class="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 outline-none transition-all">
+                                    class="mt-1 block w-full px-4 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-green-500 focus:border-green-500 outline-none">
                             </div>
-                            <button type="submit" 
-                                class="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 focus:outline-none transition-colors">
-                                Inloggen
-                            </button>
-                            <div class="mt-4 text-center">
-                                <a href="{% url 'password_reset' %}" class="text-sm text-blue-600 hover:text-blue-800 hover:underline">
-                                    Wachtwoord vergeten?
-                                </a>
+                            <div>
+                                <label class="block text-sm font-semibold text-gray-700">Herhaal Wachtwoord</label>
+                                <input type="password" name="password_confirm" required 
+                                    class="mt-1 block w-full px-4 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-green-500 focus:border-green-500 outline-none">
                             </div>
-                        </form>
-                    </div>
-                </div>
-
-                <!-- RECHTER KOLOM: REGISTREREN -->
-                <div class="w-full md:w-1/2 p-8 lg:p-12">
-                    <div class="h-full flex flex-col justify-center">
-                        <div class="mb-8">
-                            <h2 class="text-2xl font-bold text-gray-900 mb-2">Nieuw Account</h2>
-                            <p class="text-gray-600 text-sm">Start direct met het beheren van je team.</p>
                         </div>
 
-                        <form method="post" action="{% url 'eventaflow:register_company' %}" class="space-y-4">
-                            {% csrf_token %}
-                            
-                            <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                                <div>
-                                    <label class="block text-sm font-semibold text-gray-700">Gebruikersnaam</label>
-                                    <input type="text" name="username" required
-                                        class="mt-1 block w-full px-4 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-green-500 focus:border-green-500 outline-none transition-all">
-                                </div>
-                                <div>
-                                    <label class="block text-sm font-semibold text-gray-700">E-mailadres</label>
-                                    <input type="email" name="email" required
-                                        class="mt-1 block w-full px-4 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-green-500 focus:border-green-500 outline-none transition-all">
-                                </div>
-                            </div>
-
-                            <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                                <div>
-                                    <label class="block text-sm font-semibold text-gray-700">Wachtwoord</label>
-                                    <input type="password" name="password" required 
-                                        class="mt-1 block w-full px-4 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-green-500 focus:border-green-500 outline-none transition-all">
-                                </div>
-                                <div>
-                                    <label class="block text-sm font-semibold text-gray-700">Herhaal Wachtwoord</label>
-                                    <input type="password" name="password_confirm" required 
-                                        class="mt-1 block w-full px-4 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-green-500 focus:border-green-500 outline-none transition-all">
-                                </div>
-                            </div>
-
-                            <button type="submit"
-                                class="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-bold text-white bg-green-600 hover:bg-green-700 focus:outline-none transition-colors mt-4">
-                                Account aanmaken
-                            </button>
-                        </form>
-                    </div>
+                        <button type="submit"
+                            class="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-bold text-white bg-green-600 hover:bg-green-700 focus:outline-none transition-colors mt-4">
+                            Account aanmaken
+                        </button>
+                    </form>
                 </div>
             </div>
         </div>
+    </div>  
+
     </section>
 
     <!-- Hoe werkt het sectie -->
