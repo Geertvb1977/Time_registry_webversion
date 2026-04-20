@@ -32,7 +32,7 @@ from .forms import RegistrationForm, TodoForm, DivisieForm, MilestoneForm
 
 
 # 1. Het Dashboard (Hoofdpagina)
-class DashboardView(LoginRequiredMixin, View):
+class DashboardView(TenantObjectMixin, View):
     """View voor het dashboard (index) met projectoverzicht en interactieve to-do lijst."""
 
     template_name = "dashboard/index.html"

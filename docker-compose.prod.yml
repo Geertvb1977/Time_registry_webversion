@@ -8,7 +8,7 @@ services:
     # Remove ports - Traefik will route instead
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.django.rule=Host(`${DOMAIN}`)"
+      - "traefik.http.routers.django.rule=Host(`${DOMAIN}`,`www.${DOMAIN}`)"
       - "traefik.http.routers.django.entrypoints=websecure"
       - "traefik.http.routers.django.tls.certresolver=letsencrypt"
       - "traefik.http.routers.django.middlewares=django-headers"
