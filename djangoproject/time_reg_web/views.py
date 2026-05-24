@@ -102,6 +102,11 @@ class CustomerCreateView(LoginRequiredMixin, CreateView):
     template_name = "dashboard/customer_form.html"
     success_url = reverse_lazy("eventaflow:dashboard")
 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["customers"] = Customer.objects.filter(company=self.request.user.profile.company)
+        return context
+
     def form_valid(self, form):
         try:
             with transaction.atomic():
@@ -111,6 +116,21 @@ class CustomerCreateView(LoginRequiredMixin, CreateView):
         except Exception as e:
             form.add_error(None, f"Fout bij aanmaken klant: {e}")
             return self.form_invalid(form)
+
+
+class CustomerUpdateView(LoginRequiredMixin, UpdateView):
+    model = Customer
+    fields = ["customer_name", "customer_email"]
+    template_name = "dashboard/customer_form.html"
+    success_url = reverse_lazy("eventaflow:dashboard")
+
+    def get_queryset(self):
+        return Customer.objects.filter(company=self.request.user.profile.company)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["customers"] = Customer.objects.filter(company=self.request.user.profile.company)
+        return context
 
 
 # 3. Projecten Beheer (Aanmaken) - Aangepast om handmatig company te koppelen

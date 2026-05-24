@@ -12,6 +12,7 @@ urlpatterns = [
     path('register/', views.RegisterUserView.as_view(), name='register_company'),
     path('company_detail/', views.CompanyDetailView.as_view(), name='company_detail'),
     path('customer/new/', views.CustomerCreateView.as_view(), name='customer_create'),
+    path('customer/<int:pk>/edit/', views.CustomerUpdateView.as_view(), name='customer_edit'),
     path('project/new/', views.ProjectCreateView.as_view(), name='project_create'),
     path('timer/start/', views.start_timer, name='start_timer'),
     path('timer/stop/<int:timer_id>/', views.stop_timer, name='stop_timer'),
