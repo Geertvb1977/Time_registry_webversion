@@ -29,8 +29,32 @@
                 <h1 class="text-2xl font-bold">Bedrijf Beheer</h1>
                 <p class="text-blue-100 mt-1">Beheer medewerkers en projectinstellingen voor {{ company.name }}.</p>
             </div>
-
             <div class="p-8 space-y-6">
+                {% if messages %}
+                    <div class="space-y-3">
+                        {% for message in messages %}
+                            <div class="rounded-2xl border px-4 py-3 text-sm {% if 'success' in message.tags %}border-green-200 bg-green-50 text-green-700{% elif 'error' in message.tags or 'danger' in message.tags %}border-red-200 bg-red-50 text-red-700{% elif 'warning' in message.tags %}border-yellow-200 bg-yellow-50 text-yellow-700{% else %}border-blue-200 bg-blue-50 text-blue-700{% endif %}">
+                                {{ message }}
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+
+                <h2 class="text-xl font-semibold text-gray-800">Bedrijfsnaam</h2>
+                <p class="text-gray-500 mb-4">Pas de naam van je bedrijf aan.</p>
+
+                <form method="POST" class="mb-6">
+                    {% csrf_token %}
+                    <div class="flex items-center space-x-4">
+                        <input type="text" name="company_name" value="{{ company.name }}" required
+                            class="flex-1 block w-full pl-3 pr-3 py-3 border border-gray-300 rounded-xl shadow-sm focus:ring-blue-500 focus:border-blue-500 transition-all outline-none"
+                            placeholder="Bedrijfsnaam">
+                        <button type="submit" name="update_company" class="px-4 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors">
+                            <i class="fas fa-save mr-2"></i> Opslaan
+                        </button>
+                    </div>
+                </form>
+
                 <h2 class="text-xl font-semibold text-gray-800">Medewerkers</h2>
                 <p class="text-gray-500 mb-4">Voeg collega's toe aan je bedrijf of beheer bestaande medewerkers.</p>
 
@@ -44,6 +68,7 @@
                             <i class="fas fa-user-plus mr-2"></i> Toevoegen
                         </button>
                     </div>
+
                 </form>
                 {% if company_employees %}
                     <ul class="divide-y divide-gray-200">
@@ -70,7 +95,8 @@
                 {% else %}
                     <p class="text-gray-500">Er zijn nog geen medewerkers toegevoegd aan dit bedrijf.</p>
                 {% endif %}
-                
+            </div>
+            <div class="p-8 border-t border-gray-100">
                 <h2 class="text-xl font-semibold text-gray-800 mt-8">Divisies</h2>
                 <p class="text-gray-500 mb-4">Beheer divisies binnen je bedrijf voor betere taakorganisatie.</p>
 

@@ -413,8 +413,18 @@ class CompanyDetailView(LoginRequiredMixin, View):
     def post(self, request):
         company = request.user.profile.company
 
-        # 1. Medewerker toevoegen via e-mail
-        if "add_employee" in request.POST:
+        # 1. Bedrijfsnaam bijwerken
+        if "update_company" in request.POST:
+            company_name = request.POST.get("company_name", "").strip()
+            if not company_name:
+                messages.error(request, "Voer een bedrijfsnaam in.")
+            else:
+                company.name = company_name
+                company.save()
+                messages.success(request, "Bedrijfsnaam is bijgewerkt.")
+
+        # 2. Medewerker toevoegen via e-mail
+        elif "add_employee" in request.POST:
             email = request.POST.get("employee_email", "").strip()
             # Validatie: email mag niet leeg zijn
             if not email:
