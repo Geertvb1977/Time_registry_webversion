@@ -32,72 +32,61 @@
                 <div class="inline-flex items-center justify-center w-16 h-16 bg-white/20 rounded-full mb-4">
                     <i class="fas fa-folder-plus text-2xl"></i>
                 </div>
-                <h1 class="text-2xl font-bold">Nieuw Project Starten</h1>
-                <p class="text-green-100 mt-2 text-sm">Koppel een nieuw project aan een bestaande klant.</p>
+                <h1 class="text-2xl font-bold">{% if form.instance.pk %}Project bewerken{% else %}Nieuw Project{% endif %}</h1>
+                <p class="text-green-100 mt-2 text-sm">{% if form.instance.pk %}Werk het bestaande project bij.{% else %}Koppel een nieuw project aan een bestaande klant.{% endif %}</p>
             </div>
 
             <form method="POST" class="p-8">
                 {% csrf_token %}
-                
+                {{ form.non_field_errors }}
+
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     
                     <!-- Klant Selectie (Gefilterd per Company) -->
                     <div class="md:col-span-2">
-                        <label for="id_customer" class="block text-sm font-semibold text-gray-700 mb-1">Selecteer Klant</label>
+                        <label for="{{ form.customer.id_for_label }}" class="block text-sm font-semibold text-gray-700 mb-1">Selecteer Klant</label>
                         <div class="relative">
                             <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
                                 <i class="fas fa-user-tie"></i>
                             </div>
-                            <select name="customer" id="id_customer" required
-                                class="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-xl shadow-sm focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all outline-none appearance-none bg-white">
-                                {% for customer in form.fields.customer.queryset %}
-                                    <option value="{{ customer.id }}">{{ customer.customer_name }}</option>
-                                {% endfor %}
-                            </select>
+                            {{ form.customer }}
                         </div>
                         <p class="mt-1 text-xs text-gray-500">Staat de klant er niet tussen? Maak deze dan eerst aan via het klantentabblad.</p>
                     </div>
 
                     <!-- Project Naam -->
                     <div class='md:col-span-2'>
-                        <label for="id_project_name" class="block text-sm font-semibold text-gray-700 mb-1">Naam van het Project</label>
+                        <label for="{{ form.project_name.id_for_label }}" class="block text-sm font-semibold text-gray-700 mb-1">Naam van het Project</label>
                         <div class="relative">
                             <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
                                 <i class="fas fa-project-diagram"></i>
                             </div>
-                            <input type="text" name="project_name" id="id_project_name" required
-                                class="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-xl shadow-sm focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all outline-none" 
-                                placeholder="Bijv. Website Vernieuwing">
+                            {{ form.project_name }}
                         </div>
                     </div>
 
                     <!-- Startdatum -->
                     <div>
-                        <label for="id_start_date" class="block text-sm font-semibold text-gray-700 mb-1">Startdatum</label>
-                        <input type="date" name="start_date" id="id_start_date"
-                            class="block w-full px-4 py-3 border border-gray-300 rounded-xl shadow-sm focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all outline-none">
+                        <label for="{{ form.start_date.id_for_label }}" class="block text-sm font-semibold text-gray-700 mb-1">Startdatum</label>
+                        {{ form.start_date }}
                     </div>
 
                     <!-- Einddatum -->
                     <div>
-                        <label for="id_end_date" class="block text-sm font-semibold text-gray-700 mb-1">Verwachte Einddatum</label>
-                        <input type="date" name="end_date" id="id_end_date"
-                            class="block w-full px-4 py-3 border border-gray-300 rounded-xl shadow-sm focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all outline-none">
+                        <label for="{{ form.end_date.id_for_label }}" class="block text-sm font-semibold text-gray-700 mb-1">Verwachte Einddatum</label>
+                        {{ form.end_date }}
                     </div>
 
                     <!-- Beschrijving -->
                     <div class="md:col-span-2">
-                        <label for="id_project_description" class="block text-sm font-semibold text-gray-700 mb-1">Projectomschrijving</label>
-                        <textarea name="project_description" id="id_project_description" rows="3"
-                            class="block w-full px-4 py-3 border border-gray-300 rounded-xl shadow-sm focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all outline-none"
-                            placeholder="Korte omschrijving van de werkzaamheden..."></textarea>
+                        <label for="{{ form.project_description.id_for_label }}" class="block text-sm font-semibold text-gray-700 mb-1">Projectomschrijving</label>
+                        {{ form.project_description }}
                     </div>
 
                     <!-- Status -->
                     <div class="md:col-span-2 flex items-center space-x-3 bg-gray-50 p-4 rounded-xl border border-gray-200">
-                        <input type="checkbox" name="is_active" id="id_is_active" checked
-                            class="w-5 h-5 text-green-600 border-gray-300 rounded focus:ring-green-500">
-                        <label for="id_is_active" class="text-sm font-medium text-gray-700">Dit project is direct actief</label>
+                        {{ form.is_active }}
+                        <label for="{{ form.is_active.id_for_label }}" class="text-sm font-medium text-gray-700">Dit project is direct actief</label>
                     </div>
 
                 </div>
@@ -107,10 +96,48 @@
                         Annuleren
                     </a>
                     <button type="submit" class="flex-1 bg-green-600 text-white py-3 px-4 rounded-xl font-bold hover:bg-green-700 shadow-lg shadow-green-100 transition-all flex items-center justify-center">
-                        <i class="fas fa-check mr-2"></i> Project Aanmaken
+                        <i class="fas fa-check mr-2"></i> {% if form.instance.pk %}Wijzigen{% else %}Project Aanmaken{% endif %}
                     </button>
                 </div>
             </form>
+
+            <div class="p-8 border-t border-gray-100">
+                <h2 class="text-xl font-semibold text-gray-800 mb-3">Bestaande projecten</h2>
+                {% if projects %}
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="text-xs font-semibold text-gray-500 uppercase tracking-wider bg-gray-50">
+                                    <th class="px-4 py-3">Klant</th>
+                                    <th class="px-4 py-3">Project</th>
+                                    <th class="px-4 py-3">Start</th>
+                                    <th class="px-4 py-3">Eind</th>
+                                    <th class="px-4 py-3">Status</th>
+                                    <th class="px-4 py-3">Acties</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-100">
+                                {% for project in projects %}
+                                <tr class="hover:bg-gray-50 transition-colors">
+                                    <td class="px-4 py-3 text-sm font-medium text-gray-900">{{ project.customer.customer_name }}</td>
+                                    <td class="px-4 py-3 text-sm text-gray-600">{{ project.project_name }}</td>
+                                    <td class="px-4 py-3 text-sm text-gray-600">{{ project.start_date|date:'d-m-Y' }}</td>
+                                    <td class="px-4 py-3 text-sm text-gray-600">{{ project.end_date|date:'d-m-Y'|default:'-' }}</td>
+                                    <td class="px-4 py-3 text-sm text-gray-600">{% if project.is_active %}Actief{% else %}Inactief{% endif %}</td>
+                                    <td class="px-4 py-3">
+                                        <a href="{% url 'eventaflow:project_edit' project.pk %}" class="inline-flex items-center px-3 py-2 text-sm font-medium bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors">
+                                            <i class="fas fa-pen mr-2"></i> Bewerken
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <p class="text-sm text-gray-500">Er zijn nog geen projecten toegevoegd.</p>
+                {% endif %}
+            </div>
         </div>
     </main>
 

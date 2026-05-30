@@ -134,7 +134,53 @@ class CustomerUpdateView(LoginRequiredMixin, UpdateView):
 
 
 # 3. Projecten Beheer (Aanmaken) - Aangepast om handmatig company te koppelen
-class ProjectCreateView(LoginRequiredMixin, CreateView):
+class ProjectFormMixin:
+    def get_form(self, form_class=None):
+        form = super().get_form(form_class)
+        if self.request.user.is_authenticated:
+            form.fields["customer"].queryset = Customer.objects.filter(
+                company=self.request.user.profile.company
+            )
+
+        field_widget_attrs = {
+            "customer": {
+                "class": "block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-xl shadow-sm focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all outline-none bg-white appearance-none",
+            },
+            "project_name": {
+                "class": "block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-xl shadow-sm focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all outline-none",
+                "placeholder": "Bijv. Website Vernieuwing",
+            },
+            "start_date": {
+                "class": "block w-full px-4 py-3 border border-gray-300 rounded-xl shadow-sm focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all outline-none",
+            },
+            "end_date": {
+                "class": "block w-full px-4 py-3 border border-gray-300 rounded-xl shadow-sm focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all outline-none",
+            },
+            "project_description": {
+                "class": "block w-full px-4 py-3 border border-gray-300 rounded-xl shadow-sm focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all outline-none",
+                "rows": "3",
+                "placeholder": "Korte omschrijving van de werkzaamheden...",
+            },
+            "is_active": {
+                "class": "w-5 h-5 text-green-600 border-gray-300 rounded focus:ring-green-500",
+            },
+        }
+
+        for field_name, attrs in field_widget_attrs.items():
+            if field_name in form.fields:
+                form.fields[field_name].widget.attrs.update(attrs)
+
+        return form
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["projects"] = Project.objects.filter(
+            company=self.request.user.profile.company
+        ).order_by("project_name")
+        return context
+
+
+class ProjectCreateView(ProjectFormMixin, LoginRequiredMixin, CreateView):
     model = Project
     fields = [
         "customer",
@@ -147,15 +193,6 @@ class ProjectCreateView(LoginRequiredMixin, CreateView):
     template_name = "dashboard/project_form.html"
     success_url = reverse_lazy("eventaflow:dashboard")
 
-    def get_form(self, form_class=None):
-        form = super().get_form(form_class)
-        if self.request.user.is_authenticated:
-            # Zorg dat je alleen klanten van je eigen bedrijf ziet
-            form.fields["customer"].queryset = Customer.objects.filter(
-                company=self.request.user.profile.company
-            )
-        return form
-
     def form_valid(self, form):
         try:
             with transaction.atomic():
@@ -165,6 +202,27 @@ class ProjectCreateView(LoginRequiredMixin, CreateView):
         except Exception as e:
             form.add_error(None, f"Fout bij aanmaken project: {e}")
             return self.form_invalid(form)
+
+
+class ProjectUpdateView(ProjectFormMixin, LoginRequiredMixin, UpdateView):
+    model = Project
+    fields = [
+        "customer",
+        "project_name",
+        "project_description",
+        "start_date",
+        "end_date",
+        "is_active",
+    ]
+    template_name = "dashboard/project_form.html"
+    success_url = reverse_lazy("eventaflow:dashboard")
+
+    def get_queryset(self):
+        return Project.objects.filter(company=self.request.user.profile.company)
+
+    def form_valid(self, form):
+        form.instance.company = self.request.user.profile.company
+        return super().form_valid(form)
 
 
 # 4. Export View (Directe Download naar Excel met 5-minuten afronding en totaaltelling)
