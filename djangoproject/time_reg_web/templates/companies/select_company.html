@@ -35,7 +35,7 @@
                     {{ company.name }}
                 </h3>
                 
-                {% if user.profile.company == company %}
+                {% if active_company == company %}
                 <span class="absolute top-3 right-3 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
                     Actief
                 </span>

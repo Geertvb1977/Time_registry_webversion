@@ -16,6 +16,7 @@ class Company(models.Model):
     name = models.CharField(max_length=100, verbose_name="Bedrijfsnaam")
     created_at = models.DateTimeField(auto_now_add=True)
     members = models.ManyToManyField(User, related_name='companies', blank=True)
+    google_service_account_json = models.JSONField(help_text="Google Service Account JSON voor Google Sheets API", blank=True, null=True)
 
     def __str__(self):
         return self.name
@@ -47,9 +48,8 @@ class UserProfile(models.Model):
     def __str__(self):
         return f"Profiel van {self.user.username}"
 
-# 3. Bestaande modellen aanpassen (Klant, Project, etc.)
 
-
+# 3. Klantmodel (Koppelt klanten aan bedrijven)
 class Customer(models.Model):
     """ Model voor klanten binnen een bedrijf """
     company = models.ForeignKey(Company, on_delete=models.CASCADE, related_name='customers')
@@ -72,6 +72,7 @@ class Customer(models.Model):
         return self.customer_name
 
 
+# 4. Divisiemodel (Koppelt divisies aan bedrijven)
 class Divisies(models.Model):
     """ Model voor divisies binnen een bedrijf """
     divisie_id = models.IntegerField()
@@ -93,6 +94,7 @@ class Divisies(models.Model):
         return self.divisie_name
 
 
+# 5. Projectmodel (Koppelt projecten aan bedrijven en klanten)
 class Project(models.Model):
     """ Model voor projecten binnen een bedrijf """
     company = models.ForeignKey(Company, on_delete=models.CASCADE, related_name='projects')
@@ -119,6 +121,7 @@ class Project(models.Model):
         return self.project_name
 
 
+# 6. Tijdregistratiemodel (Koppelt tijdregistraties aan bedrijven, gebruikers, projecten en divisies)
 class TimeRegistry(models.Model):
     """ Model voor tijdregistraties binnen een bedrijf """
     company = models.ForeignKey(Company, on_delete=models.CASCADE, related_name='time_registrys')
@@ -128,11 +131,13 @@ class TimeRegistry(models.Model):
     start_time = models.DateTimeField()
     end_time = models.DateTimeField(null=True, blank=True)
     description = models.TextField(blank=True)
+    Todo = models.ForeignKey('Todo', on_delete=models.SET_NULL, null=True, blank=True, related_name='time_registrys')
 
     def __str__(self):
         return f"{self.user.username} - {self.project.project_name} - {self.start_time}"
 
 
+# 7. Mijlpaalmodel (Koppelt mijlpalen aan bedrijven, projecten en divisies)
 class Milstones(models.Model):
     """ Model voor mijlpalen binnen een bedrijf """
     company = models.ForeignKey(Company, on_delete=models.CASCADE, related_name='milstones')
@@ -148,7 +153,7 @@ class Milstones(models.Model):
         return self.title
 
 
-
+# 8. Taakmodel (Koppelt taken aan bedrijven, gebruikers, klanten, projecten en divisies)
 class Todo(models.Model):
     """ Model voor taken binnen een bedrijf """
     company = models.ForeignKey(Company, on_delete=models.CASCADE, related_name='todos')
@@ -166,6 +171,32 @@ class Todo(models.Model):
 
     def __str__(self):
         return self.title
+
+
+# 9. Google Sheets Configuratiemodel (Koppelt Google Sheets configuraties aan bedrijven)
+class GoogleDocument(models.Model):
+    """
+    Slaat de koppeling op bedrijven en hun Google Sheets configuraties.
+    """
+    FILE_TYPES = (
+        ('document', 'Google Doc (Bewerkbaar)'),
+        ('spreadsheet', 'Google Sheet (Bewerkbaar)'),
+        ('pdf', 'PDF (Alleen lezen)'),
+        ('binary', 'Overig bestand (Enkel downloaden)'),
+    )
+
+    company = models.ForeignKey(Company, on_delete=models.CASCADE, related_name="documents")
+    title = models.CharField(max_length=255)
+    google_file_id = models.CharField(
+        max_length=255, 
+        unique=True, 
+        help_text="De unieke ID van het bestand op Google Drive"
+    )
+    file_type = models.CharField(max_length=20, choices=FILE_TYPES, default='document')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.title} ({self.get_file_type_display()})"
 
 
 # --- SIGNALS ---

@@ -26,9 +26,11 @@ from .models import (
     Todo,
     Divisies,
     Milstones,
+    GoogleDocument,
 )
 from .mixins import TenantObjectMixin
 from .forms import RegistrationForm, TodoForm, DivisieForm, MilestoneForm
+from .google_drive_service import GoogleDriveService
 
 
 # 1. Het Dashboard (Hoofdpagina)
@@ -391,6 +393,12 @@ class CompanySelectionView(LoginRequiredMixin, ListView):
 
     def get_queryset(self):
         return self.request.user.companies.all()
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        profile = getattr(self.request.user, 'profile', None)
+        context['active_company'] = getattr(profile, 'company', None) if profile else None
+        return context
 
 
 @login_required
@@ -870,3 +878,116 @@ def toggle_milestone(request, milestone_id):
         messages.success(request, "Milestone status bijgewerkt!")
 
     return redirect("eventaflow:milestone_list")
+
+
+@login_required
+def create_doc_view(request):
+    """
+    View om direct een nieuw, leeg Google Doc aan te maken voor het actieve bedrijf.
+    """
+    active_company_id = request.session.get('active_company_id')
+    if not active_company_id:
+        return redirect('company_select')
+
+    company = get_object_or_404(Company, id=active_company_id)
+
+    if request.method == 'POST':
+        title = request.POST.get('title', 'Naamloos Document')
+        
+        # Initialiseer de service voor dit specifieke bedrijf
+        service = GoogleDriveService(company)
+        
+        # Maak het lege document aan op Google Drive
+        google_file_id = service.create_empty_google_doc(title)
+        
+        if google_file_id:
+            # Sla de referentie op in onze lokale Django database
+            doc = GoogleDocument.objects.create(
+                company=company,
+                title=title,
+                google_file_id=google_file_id,
+                file_type='document'
+            )
+            return redirect('view_document', doc_id=doc.id)
+            
+    return render(request, 'docs/create_document.html')
+
+
+@login_required
+def upload_file_view(request):
+    """
+    View die een lokaal bestand (Word, Excel, PDF) accepteert,
+    het uploadt naar Google Drive, en optioneel converteert naar een Google Doc/Sheet.
+    """
+    active_company_id = request.session.get('active_company_id')
+    if not active_company_id:
+        return redirect('company_select')
+
+    company = get_object_or_404(Company, id=active_company_id)
+
+    if request.method == 'POST' and request.FILES.get('file'):
+        uploaded_file = request.FILES['file']
+        title = request.POST.get('title', uploaded_file.name)
+        
+        # Wil de gebruiker automatische conversie naar Google Docs/Sheets?
+        # (Dit vinken we standaard aan voor Word en Excel)
+        convert = request.POST.get('convert_to_google', 'on') == 'on'
+        
+        service = GoogleDriveService(company)
+        
+        # Upload en converteer via onze service
+        google_file_id, file_type = service.upload_and_convert_file(
+            django_file=uploaded_file,
+            title=title,
+            original_mime_type=uploaded_file.content_type,
+            convert_to_google=convert
+        )
+        
+        if google_file_id:
+            # Sla op in de lokale database
+            doc = GoogleDocument.objects.create(
+                company=company,
+                title=title,
+                google_file_id=google_file_id,
+                file_type=file_type
+            )
+            return redirect('view_document', doc_id=doc.id)
+
+    return render(request, 'docs/upload_document.html')
+
+
+@login_required
+def view_document(request, doc_id):
+    """
+    Toont het bestand in de template.
+    Als het een bewerkbaar document/sheet is, embedden we het in een Iframe.
+    Als het een PDF is, gebruiken we een PDF viewer of een Drive preview link.
+    """
+    active_company_id = request.session.get('active_company_id')
+    company = get_object_or_404(Company, id=active_company_id)
+    document = get_object_or_404(GoogleDocument, id=doc_id, company=company)
+    
+    # Haal het Google-emailadres van het gebruikersprofiel op
+    user_google_email = request.user.profile.google_email
+
+    service = GoogleDriveService(company)
+    
+    # Deel het bestand met de gebruiker zodat de browser-sessie toegang heeft
+    # Voor bewerkbare bestanden geven we 'writer', voor PDFs of overig geven we 'reader'
+    role = 'writer' if document.file_type in ['document', 'spreadsheet'] else 'reader'
+    service.share_file_with_user(document.google_file_id, user_google_email, role=role)
+
+    # Bepaal de juiste Iframe URL op basis van het type bestand
+    if document.file_type == 'document':
+        embed_url = f"https://docs.google.com/document/d/{document.google_file_id}/edit?usp=embed_javascript"
+    elif document.file_type == 'spreadsheet':
+        embed_url = f"https://docs.google.com/spreadsheets/d/{document.google_file_id}/edit?usp=embed_javascript"
+    else:
+        # Voor PDFs en overige binaire bestanden gebruiken we de universele Google Drive previewer
+        embed_url = f"https://drive.google.com/file/d/{document.google_file_id}/preview"
+
+    context = {
+        'document': document,
+        'embed_url': embed_url,
+    }
+    return render(request, 'docs/view_document.html', context)
