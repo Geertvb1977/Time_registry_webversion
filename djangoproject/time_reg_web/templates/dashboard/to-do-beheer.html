@@ -198,9 +198,9 @@
                                 <div>
                                     <label class="block text-xs font-bold uppercase tracking-widest text-gray-500 mb-2">Prioriteit *</label>
                                     <select name="priority" required class="w-full rounded-lg border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500 py-2.5">
-                                        <option value="1" {% if form.instance.priority == 1 %}selected{% endif %}>Hoog</option>
-                                        <option value="2" {% if form.instance.priority == 2 or not form.instance.id %}selected{% endif %}>Normaal</option>
-                                        <option value="3" {% if form.instance.priority == 3 %}selected{% endif %}>Laag</option>
+                                        <option value="1" {% if form.instance.priority == 1 %}selected{% endif %}>Hoog P1</option>
+                                        <option value="2" {% if form.instance.priority == 2 or not form.instance.id %}selected{% endif %}>Normaal P2</option>
+                                        <option value="3" {% if form.instance.priority == 3 %}selected{% endif %}>Laag P3</option>
                                     </select>
                                 </div>
                                 <div>

@@ -731,7 +731,9 @@ def toggle_todo(request, todo_id):
         todo.save()
         messages.success(request, "Taak status bijgewerkt!")
 
-    return redirect("eventaflow:todo_list")
+    # Redirect back to the page the request came from
+    referer = request.META.get('HTTP_REFERER', reverse_lazy("eventaflow:dashboard"))
+    return redirect(referer)
 
 
 # 7. Milestones View (Vergelijkbaar met TodoListView maar dan voor Milestones)
