@@ -498,6 +498,7 @@ dependencies = [
     { name = "psycopg" },
     { name = "python-decouple" },
     { name = "python-dotenv" },
+    { name = "requests" },
 ]
 
 [package.metadata]
@@ -515,6 +516,7 @@ requires-dist = [
     { name = "psycopg", specifier = ">=3.3.2" },
     { name = "python-decouple", specifier = ">=3.8" },
     { name = "python-dotenv", specifier = ">=1.2.1" },
+    { name = "requests", specifier = ">=2.34.2" },
 ]
 
 [[package]]

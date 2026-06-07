@@ -5,6 +5,7 @@
 
 db.sqlite3
 .traefik_letsencrypt/
+temp.py
 
 # User-specific files
 *.rsuser

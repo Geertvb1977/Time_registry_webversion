@@ -32,4 +32,9 @@ class Migration(migrations.Migration):
                 ('company', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='documents', to='time_reg_web.company')),
             ],
         ),
+        migrations.AddField(
+            model_name='divisies',
+            name='google_drive_folder_id',
+            field=models.CharField(blank=True, help_text='Optioneel: Google Drive map ID voor deze divisie', max_length=255, null=True),
+        ),
     ]

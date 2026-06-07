@@ -22,4 +22,8 @@ urlpatterns = [
     path('todos/<int:todo_id>/toggle/', views.toggle_todo, name='todo_toggle'),
     path('milestones/', views.MilestonesView.as_view(), name='milestone_list'),
     path('milestones/<int:milestone_id>/toggle/', views.toggle_milestone, name='milestone_toggle'),
+    path('google_docs/', views.google_docs_view, name='google_docs'),
+    path('google/settings/', views.google_settings_view, name='google_settings'),
+    path('google/authorize/', views.google_authorize_start, name='google_authorize'),
+    path('google/callback/', views.google_authorize_callback, name='google_callback'),
 ]

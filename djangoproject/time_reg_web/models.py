@@ -17,6 +17,9 @@ class Company(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     members = models.ManyToManyField(User, related_name='companies', blank=True)
     google_service_account_json = models.JSONField(help_text="Google Service Account JSON voor Google Sheets API", blank=True, null=True)
+    google_client_id = models.CharField(max_length=255, blank=True, null=True, help_text="OAuth Client ID")
+    google_client_secret = models.CharField(max_length=255, blank=True, null=True, help_text="OAuth Client Secret")
+    google_oauth_token = models.JSONField(blank=True, null=True, help_text="OAuth tokens (Access & Refresh)")
 
     def __str__(self):
         return self.name
@@ -78,6 +81,7 @@ class Divisies(models.Model):
     divisie_id = models.IntegerField()
     divisie_name = models.CharField(max_length=255)
     company = models.ForeignKey(Company, on_delete=models.CASCADE, related_name='divisies')
+    google_drive_folder_id = models.CharField(max_length=255, blank=True, null=True, help_text="Optioneel: Google Drive map ID voor deze divisie")
 
     class Meta:
         unique_together = ('company', 'divisie_id')
