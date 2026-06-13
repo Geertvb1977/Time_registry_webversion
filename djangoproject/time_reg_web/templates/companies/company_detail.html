@@ -17,9 +17,9 @@
                     <i class="fas fa-arrow-left mr-2"></i> Terug naar Dashboard
                 </a>
             </div>
-                <div class="font-medium text-gray-700">
-                    {{ company.name }}
-                </div>
+            <div class="font-medium text-gray-700">
+                {{ company.name }}
+            </div>
         </div>
     </nav>
 
@@ -27,7 +27,7 @@
         <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
             <div class="p-8 bg-blue-600 text-white">
                 <h1 class="text-2xl font-bold">Bedrijf Beheer</h1>
-                <p class="text-blue-100 mt-1">Beheer medewerkers en projectinstellingen voor {{ company.name }}.</p>
+                <p class="text-blue-100 mt-1">Beheer medewerkers, divisies en Google Cloud instellingen voor {{ company.name }}.</p>
             </div>
             <div class="p-8 space-y-6">
                 {% if messages %}
@@ -40,6 +40,7 @@
                     </div>
                 {% endif %}
 
+                <!-- BEDRIJFSNAAM -->
                 <h2 class="text-xl font-semibold text-gray-800">Bedrijfsnaam</h2>
                 <p class="text-gray-500 mb-4">Pas de naam van je bedrijf aan.</p>
 
@@ -55,6 +56,7 @@
                     </div>
                 </form>
 
+                <!-- MEDEWERKERS -->
                 <h2 class="text-xl font-semibold text-gray-800">Medewerkers</h2>
                 <p class="text-gray-500 mb-4">Voeg collega's toe aan je bedrijf of beheer bestaande medewerkers.</p>
 
@@ -68,8 +70,8 @@
                             <i class="fas fa-user-plus mr-2"></i> Toevoegen
                         </button>
                     </div>
-
                 </form>
+
                 {% if company_employees %}
                     <ul class="divide-y divide-gray-200">
                         {% for employee in company_employees %}
@@ -96,8 +98,10 @@
                     <p class="text-gray-500">Er zijn nog geen medewerkers toegevoegd aan dit bedrijf.</p>
                 {% endif %}
             </div>
+
+            <!-- DIVISIES -->
             <div class="p-8 border-t border-gray-100">
-                <h2 class="text-xl font-semibold text-gray-800 mt-8">Divisies</h2>
+                <h2 class="text-xl font-semibold text-gray-800">Divisies</h2>
                 <p class="text-gray-500 mb-4">Beheer divisies binnen je bedrijf voor betere taakorganisatie.</p>
 
                 <form method="POST" class="mb-6">
@@ -111,6 +115,7 @@
                         </button>
                     </div>
                 </form>
+
                 {% if divisies %}
                     <ul class="divide-y divide-gray-200">
                         {% for divisie in divisies %}
@@ -121,6 +126,11 @@
                                     </div>
                                     <div>
                                         <p class="text-sm font-medium text-gray-900">{{ divisie.divisie_name }}</p>
+                                        {% if divisie.google_drive_folder_id %}
+                                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
+                                                <i class="fab fa-google-drive mr-1"></i> Gekoppeld
+                                            </span>
+                                        {% endif %}
                                     </div>
                                 </div>
                                 <form method="POST" class="inline">
@@ -136,24 +146,83 @@
                     <p class="text-gray-500">Er zijn nog geen divisies toegevoegd aan dit bedrijf.</p>
                 {% endif %}
             </div>
-            <div class="p-8 border-t border-gray-100">
-                <h2 class="text-xl font-semibold text-gray-800 mt-2">Google Service Account</h2>
-                <p class="text-gray-500 mb-4">Plak hier de JSON van het service account (gebruik een nieuwe sleutel, bewaar veilig).</p>
 
-                <form method="POST" class="mb-6">
+            <!-- GOOGLE DRIVE & OAUTH CONFIGURATION (NIEUWE OAUTH2 IMPLEMENTATIE) -->
+            <div class="p-8 border-t border-gray-100">
+                <h2 class="text-xl font-semibold text-gray-800">Google Drive & Documenten Integratie (OAuth2)</h2>
+                <p class="text-gray-500 mb-4">Voer hier de OAuth2 credentials in van jouw bedrijf om direct documenten, spreadsheets en mappen aan te maken onder je eigen Google opslagquota.</p>
+
+                <!-- Actieve Verbindingsstatus -->
+                <div class="p-4 rounded-xl border flex items-center justify-between mb-6 {% if google_authorized %}bg-green-50 border-green-200{% else %}bg-yellow-50 border-yellow-200{% endif %}">
+                    <div class="flex items-center space-x-3">
+                        <i class="fab fa-google text-2xl {% if google_authorized %}text-green-600{% else %}text-yellow-600{% endif %}"></i>
+                        <div>
+                            <h3 class="text-sm font-bold text-gray-900">Google Drive Status</h3>
+                            <p class="text-xs text-gray-600">
+                                {% if google_authorized %}
+                                    Verbonden en volledig geautoriseerd! Jouw applicatie bewaart mappen en documenten rechtstreeks op jouw Google Drive.
+                                {% else %}
+                                    Nog niet geautoriseerd. Sla de Client ID en Client Secret op en klik daarna op "Koppel Google Account".
+                                {% endif %}
+                            </p>
+                        </div>
+                    </div>
+                    <div>
+                        {% if google_authorized %}
+                            <span class="px-2.5 py-1 text-xs font-semibold bg-green-200 text-green-800 rounded-full">Actief</span>
+                        {% else %}
+                            <span class="px-2.5 py-1 text-xs font-semibold bg-yellow-200 text-yellow-800 rounded-full font-bold">Inactief</span>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Formulieren voor beheer -->
+                <form method="POST" class="space-y-4">
                     {% csrf_token %}
                     <div>
-                        <textarea name="google_service_json" rows="12" class="block w-full font-mono text-sm p-3 border border-gray-300 rounded-xl" placeholder='{"type": "service_account", ...}'>{{ google_service_json_pretty }}</textarea>
+                        <label class="block text-sm font-bold text-gray-700 mb-1">Google OAuth Client ID</label>
+                        <input type="text" name="google_client_id" value="{{ company.google_client_id|default:'' }}" required
+                            class="block w-full pl-3 pr-3 py-3 border border-gray-300 rounded-xl shadow-sm focus:ring-blue-500 focus:border-blue-500 outline-none text-sm font-mono"
+                            placeholder="xxxxxxxxxxxx-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx.apps.googleusercontent.com">
                     </div>
-                    <div class="mt-4 flex items-center space-x-3">
-                        <button type="submit" name="update_google_service" class="px-4 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors">
-                            <i class="fas fa-save mr-2"></i> Opslaan
+
+                    <div>
+                        <label class="block text-sm font-bold text-gray-700 mb-1">Google OAuth Client Secret</label>
+                        <input type="password" name="google_client_secret" value="{% if company.google_client_secret %}********{% endif %}" required
+                            class="block w-full pl-3 pr-3 py-3 border border-gray-300 rounded-xl shadow-sm focus:ring-blue-500 focus:border-blue-500 outline-none text-sm font-mono"
+                            placeholder="GOCSPX-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx">
+                        <p class="text-xs text-gray-400 mt-1">Gevoelige credentials worden symmetrisch versleuteld opgeslagen in onze database.</p>
+                    </div>
+
+                    <div class="pt-2 flex flex-wrap gap-2">
+                        <!-- Opslaan -->
+                        <button type="submit" name="update_google_credentials" class="px-4 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors text-sm font-bold">
+                            <i class="fas fa-save mr-2"></i> Credentials Opslaan
                         </button>
-                        <button type="submit" name="update_google_service" value="remove" formaction="" class="px-4 py-3 bg-red-600 text-white rounded-xl hover:bg-red-700 transition-colors" onclick="this.form['google_service_json'].value='';">
-                            <i class="fas fa-trash mr-2"></i> Verwijderen
-                        </button>
+                        
+                        <!-- Koppel-knop (Alleen tonen als er opgeslagen credentials zijn) -->
+                        {% if google_configured %}
+                            <a href="{% url 'eventaflow:google_authorize' %}" class="px-4 py-3 bg-green-600 text-white rounded-xl hover:bg-green-700 transition-colors text-sm font-bold flex items-center">
+                                <i class="fas fa-link mr-2"></i> Koppel Google Account
+                            </a>
+                        {% endif %}
+
+                        <!-- Ontkoppelen / Verwijderen -->
+                        {% if google_configured or google_authorized %}
+                            <button type="submit" name="remove_google_credentials" class="px-4 py-3 bg-red-600 text-white rounded-xl hover:bg-red-700 transition-colors text-sm font-bold"
+                                onclick="return confirm('Weet je zeker dat je de Google Drive configuratie en actieve tokens wilt verwijderen?');">
+                                <i class="fas fa-unlink mr-2"></i> Koppeling Verwijderen
+                            </button>
+                        {% endif %}
                     </div>
                 </form>
+
+                <!-- Dynamische Redirect URI weergave voor de beheerder -->
+                <div class="mt-6 p-4 bg-gray-50 border border-gray-200 rounded-xl">
+                    <h4 class="text-sm font-bold text-gray-900 mb-2">Google Cloud Console Redirect URI</h4>
+                    <p class="text-xs text-gray-600 mb-2">Voeg de onderstaande Redirect URI toe onder de "Geautoriseerde omleidings-URI's" van de OAuth 2.0-client-ID in jouw Google Cloud project:</p>
+                    <code class="block bg-gray-200 p-2 rounded text-red-600 text-xs font-mono select-all break-all">{{ request.scheme }}://{{ request.get_host }}{% url 'eventaflow:google_callback' %}</code>
+                </div>
             </div>
         </div>
     </main>

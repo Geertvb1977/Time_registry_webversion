@@ -3,6 +3,7 @@
 import urllib.parse
 import requests
 import openpyxl
+import secrets
 import json
 
 from django.shortcuts import render, redirect, get_object_or_404
@@ -21,7 +22,7 @@ from django.http import HttpResponse, HttpResponseRedirect, HttpResponseBadReque
 from django.urls import reverse_lazy, reverse
 from django.views.generic.base import RedirectView
 
-from .models import Company, Divisies, GoogleDocument
+from .models import UserProfile, Company, Divisies, GoogleDocument
 from .google_drive_service import GoogleDriveService
 
 
@@ -464,18 +465,20 @@ class CompanyCreateView(LoginRequiredMixin, CreateView):
         return super().form_invalid(form)
 
 
+# logger = logging.getLogger(__name__)
+
+
 class CompanyDetailView(LoginRequiredMixin, View):
     template_name = "companies/company_detail.html"
 
     def get_context_data(self, company):
-        """Helper om de context op te halen"""
+        """Helper-methode om de context op te bouwen voor de template."""
         return {
             "company": company,
             "company_employees": UserProfile.objects.filter(company=company),
             "divisies": Divisies.objects.filter(company=company),
-            "divisie_form": DivisieForm(),
-            # 'projects': Project.objects.filter(customer__company=company) # Veronderstelt Project -> Customer -> Company
-            "google_service_json_pretty": json.dumps(company.google_service_account_json, indent=2) if company.google_service_account_json else "",
+            "google_configured": bool(company.google_client_id and company.google_client_secret),
+            "google_authorized": bool(company.google_oauth_token),
         }
 
     def get(self, request):
@@ -487,6 +490,15 @@ class CompanyDetailView(LoginRequiredMixin, View):
 
     def post(self, request):
         company = request.user.profile.company
+        if not company:
+            messages.error(request, "Je bent niet gekoppeld aan een bedrijf.")
+            return redirect("eventaflow:dashboard")
+
+        # Controleer of de gebruiker superuser is OF de rol van company admin heeft
+        is_admin = request.user.profile.is_company_admin or request.user.is_superuser
+        if not is_admin:
+            messages.error(request, "Je hebt geen rechten om deze actie uit te voeren.")
+            return render(request, self.template_name, self.get_context_data(company))
 
         # 1. Bedrijfsnaam bijwerken
         if "update_company" in request.POST:
@@ -501,14 +513,11 @@ class CompanyDetailView(LoginRequiredMixin, View):
         # 2. Medewerker toevoegen via e-mail
         elif "add_employee" in request.POST:
             email = request.POST.get("employee_email", "").strip()
-            # Validatie: email mag niet leeg zijn
             if not email:
                 messages.error(request, "Voer alstublieft een e-mailadres in.")
             else:
                 try:
-                    # Zoek gebruiker op e-mail (case-insensitive)
                     user_to_add = User.objects.get(email__iexact=email)
-                    # Controleer of deze gebruiker al in het bedrijf zit
                     existing_profile = UserProfile.objects.filter(
                         user=user_to_add, company=company
                     ).first()
@@ -518,16 +527,13 @@ class CompanyDetailView(LoginRequiredMixin, View):
                             f"{user_to_add.username} is al lid van dit bedrijf.",
                         )
                     else:
-                        # Maak of update het profiel
                         profile, created = UserProfile.objects.get_or_create(
                             user=user_to_add
                         )
                         profile.company = company
-                        profile.is_company_admin = False  # Expliciet geen admin maken
+                        profile.is_company_admin = False
                         profile.save()
-                        company.members.add(
-                            user_to_add
-                        )  # Voeg toe aan de ManyToMany relatie
+                        company.members.add(user_to_add)
                         messages.success(
                             request,
                             f"{user_to_add.username} ({user_to_add.email}) is toegevoegd aan het bedrijf.",
@@ -535,10 +541,10 @@ class CompanyDetailView(LoginRequiredMixin, View):
                 except User.DoesNotExist:
                     messages.error(
                         request,
-                        f"Geen gebruiker gevonden met e-mailadres '{email}'. Controleer het e-mailadres en probeer opnieuw.",
+                        f"Geen gebruiker gevonden met e-mailadres '{email}'. Controleer het e-mailadres.",
                     )
 
-        # 2. Medewerker verwijderen
+        # 3. Medewerker verwijderen
         elif "remove_employee" in request.POST:
             employee_id = request.POST.get("remove_employee")
             try:
@@ -549,7 +555,7 @@ class CompanyDetailView(LoginRequiredMixin, View):
             except UserProfile.DoesNotExist:
                 messages.error(request, "Medewerker niet gevonden.")
 
-        # 3. Divisie toevoegen
+        # 4. Divisie toevoegen
         elif "add_divisie" in request.POST:
             divisie_name = request.POST.get("divisie_name", "").strip()
             if not divisie_name:
@@ -557,7 +563,6 @@ class CompanyDetailView(LoginRequiredMixin, View):
             else:
                 try:
                     with transaction.atomic():
-                        # Check if divisie already exists for this company
                         if Divisies.objects.filter(
                             company=company, divisie_name__iexact=divisie_name
                         ).exists():
@@ -565,8 +570,7 @@ class CompanyDetailView(LoginRequiredMixin, View):
                                 request, f"Divisie '{divisie_name}' bestaat al."
                             )
                         else:
-                            # Create new divisie
-                            divisie = Divisies.objects.create(
+                            Divisies.objects.create(
                                 divisie_name=divisie_name, company=company
                             )
                             messages.success(
@@ -575,7 +579,7 @@ class CompanyDetailView(LoginRequiredMixin, View):
                 except Exception as e:
                     messages.error(request, f"Fout bij aanmaken divisie: {e}")
 
-        # 4. Divisie verwijderen
+        # 5. Divisie verwijderen
         elif "remove_divisie" in request.POST:
             divisie_id = request.POST.get("remove_divisie")
             try:
@@ -586,24 +590,35 @@ class CompanyDetailView(LoginRequiredMixin, View):
             except Divisies.DoesNotExist:
                 messages.error(request, "Divisie niet gevonden.")
 
-        # 5. Google Service Account JSON opslaan
-        elif "update_google_service" in request.POST:
-            raw_json = request.POST.get("google_service_json", "").strip()
-            if not raw_json:
-                company.google_service_account_json = None
+        # 6. Google OAuth Credentials opslaan
+        elif "update_google_credentials" in request.POST:
+            client_id = request.POST.get("google_client_id", "").strip()
+            client_secret = request.POST.get("google_client_secret", "").strip()
+
+            if client_id and client_secret:
+                company.google_client_id = client_id
+                
+                # Sla client_secret alleen op als het geen gemaskeerde weergave is
+                if client_secret != "********":
+                    company.google_client_secret = client_secret
+                
                 company.save()
-                messages.success(request, "Google service account JSON verwijderd.")
+                messages.success(
+                    request, 
+                    "Google OAuth credentials succesvol opgeslagen! Klik nu op de groene knop om de autorisatie te starten."
+                )
             else:
-                try:
-                    parsed = json.loads(raw_json)
-                    company.google_service_account_json = parsed
-                    company.save()
-                    messages.success(request, "Google service account JSON opgeslagen.")
-                except json.JSONDecodeError as e:
-                    messages.error(request, f"Ongeldige JSON: {e}")
+                messages.error(request, "Zowel het Client ID als het Client Secret zijn verplicht.")
+
+        # 7. Google Credentials en actieve Tokens volledig verwijderen (Ontkoppelen)
+        elif "remove_google_credentials" in request.POST:
+            company.google_client_id = None
+            company.google_client_secret = None
+            company.google_oauth_token = None
+            company.save()
+            messages.success(request, "Google Drive integratie en actieve tokens zijn succesvol verwijderd.")
 
         return render(request, self.template_name, self.get_context_data(company))
-
 
 # 6. Uitloggen
 class LoginView(RedirectView):
@@ -771,117 +786,6 @@ def toggle_todo(request, todo_id):
 
 # 7. Google Docs Management View
 @login_required
-def google_settings_view(request):
-    """
-    Instellingenpagina waar de Company Admin de Google OAuth credentials kan invoeren
-    en de koppeling met zijn/haar eigen Google account kan opzetten.
-    """
-    company = request.user.profile.company
-    
-    # Beveiliging: Alleen company admins mogen credentials beheren
-    if not request.user.profile.is_company_admin:
-        messages.error(request, "Je hebt geen rechten om de Google integratie te configureren.")
-        return redirect('eventaflow:google_docs')
-
-    if request.method == "POST":
-        client_id = request.POST.get("client_id", "").strip()
-        client_secret = request.POST.get("client_secret", "").strip()
-        
-        if client_id and client_secret:
-            company.google_client_id = client_id
-            company.google_client_secret = client_secret
-            company.save()
-            messages.success(request, "Google OAuth credentials opgeslagen. Start nu de autorisatie.")
-        else:
-            messages.error(request, "Vul zowel het Client ID als het Client Secret in.")
-
-    context = {
-        'company': company,
-        'has_credentials': bool(company.google_client_id and company.google_client_secret),
-        'is_authorized': bool(company.google_oauth_token),
-    }
-    return render(request, "google_settings.html", context)
-
-
-@login_required
-def google_authorize_start(request):
-    """
-    Genereert de autorisatie-URL voor Google op basis van de opgeslagen Company OAuth credentials
-    en stuurt de Admin door naar het inlog- en autorisatiescherm van Google.
-    """
-    company = request.user.profile.company
-    
-    if not request.user.profile.is_company_admin:
-        return HttpResponseBadRequest("Alleen admins kunnen autoriseren.")
-
-    client_id = company.google_client_id
-    if not client_id:
-        messages.error(request, "Voer eerst je Client ID in.")
-        return redirect('eventaflow:google_settings')
-
-    # Bepaal de dynamische callback URI op basis van het actieve domein
-    redirect_uri = request.build_absolute_uri(reverse('eventaflow:google_callback'))
-    
-    # Configureer de parameters voor de Google authorization endpoint
-    params = {
-        'client_id': client_id,
-        'redirect_uri': redirect_uri,
-        'response_type': 'code',
-        'scope': 'https://www.googleapis.com/auth/drive https://www.googleapis.com/auth/documents',
-        'access_type': 'offline',  # Essentieel om een 'refresh_token' te ontvangen!
-        'prompt': 'consent',       # Forceert Google om het toestemmingsscherm te tonen zodat we de refresh_token krijgen
-    }
-    
-    authorization_url = f"https://accounts.google.com/o/oauth2/v2/auth?{urllib.parse.urlencode(params)}"
-    return HttpResponseRedirect(authorization_url)
-
-
-@login_required
-def google_authorize_callback(request):
-    """
-    De callback view waar Google de Admin naar terugstuurt met een autorisatiecode.
-    Deze code wisselen we hier in voor de benodigde access_token en refresh_token.
-    """
-    company = request.user.profile.company
-    code = request.GET.get('code')
-    
-    if not code:
-        messages.error(request, "Geen autorisatiecode ontvangen van Google.")
-        return redirect('eventaflow:google_settings')
-
-    redirect_uri = request.build_absolute_uri(reverse('eventaflow:google_callback'))
-
-    # Wissel de code in voor tokens via een POST request naar Google
-    token_url = "https://oauth2.googleapis.com/token"
-    payload = {
-        'code': code,
-        'client_id': company.google_client_id,
-        'client_secret': company.google_client_secret,
-        'redirect_uri': redirect_uri,
-        'grant_type': 'authorization_code',
-    }
-
-    try:
-        response = requests.post(token_url, data=payload)
-        response_data = response.json()
-
-        if response.status_code == 200:
-            # Sla de tokens op in het Company model (wordt automatisch versleuteld door onze model setter)
-            company.google_oauth_token = response_data
-            company.save()
-            messages.success(request, "Google Account met succes gekoppeld! Je kunt nu mappen en bestanden beheren.")
-            return redirect('eventaflow:google_docs')
-        else:
-            error_desc = response_data.get('error_description', 'Onbekende fout')
-            messages.error(request, f"Fout bij het ophalen van tokens: {error_desc}")
-            return redirect('eventaflow:google_settings')
-
-    except Exception as e:
-        messages.error(request, f"Fout tijdens netwerkverbinding met Google: {e}")
-        return redirect('eventaflow:google_settings')
-
-
-@login_required
 def google_docs_view(request):
     """
     Het hoofdscherm van je documentenbeheer, gekoppeld aan de divisie-mappen en
@@ -907,12 +811,12 @@ def google_docs_view(request):
 
     if request.method == "POST":
         if not service:
-            messages.error(request, "Google integratie is nog niet geconfigureerd.")
+            messages.error(request, "Google integratie is nog niet geconfigureerd of geautoriseerd.")
             return redirect('eventaflow:google_docs')
 
         action = request.POST.get("action")
         
-        # 1. Handmatig aanmaken en delen van een Divisieland-map
+        # 1. Handmatig aanmaken en delen van een Divisie-map
         if action == "create_division_folder":
             divisie_pk = request.POST.get("divisie_pk")
             divisie = get_object_or_404(Divisies, pk=divisie_pk, company=company)
@@ -1012,7 +916,7 @@ def google_docs_view(request):
         'docs': docs,
         'iframe_url': iframe_url,
         'is_configured': is_configured,
-        'is_admin': request.user.profile.is_company_admin,
+        'is_admin': request.user.profile.is_company_admin or request.user.is_superuser,
     }
     return render(request, "google_docs.html", context)
 
@@ -1264,3 +1168,388 @@ def view_document(request, doc_id):
         'embed_url': embed_url,
     }
     return render(request, 'docs/view_document.html', context)
+
+
+login_required
+def google_settings_view(request):
+    """
+    Instellingenpagina (gebaseerd op google_settings.html) waar gebruikers met de juiste
+    rechten de Google OAuth credentials kunnen beheren en autoriseren.
+    """
+    company = request.user.profile.company
+    if not company:
+        messages.error(request, "Je bent niet gekoppeld aan een bedrijf.")
+        return redirect("eventaflow:dashboard")
+    
+    # Beveiliging: Iedereen binnen het bedrijf mag de status zien, 
+    # maar alleen admins/superusers mogen POST-wijzigingen doorvoeren.
+    is_admin = request.user.profile.is_company_admin or request.user.is_superuser
+
+    if request.method == "POST":
+        if not is_admin:
+            messages.error(request, "Je hebt geen rechten om deze instellingen aan te passen.")
+            return redirect('eventaflow:google_settings')
+
+        client_id = request.POST.get("client_id", "").strip()
+        client_secret = request.POST.get("client_secret", "").strip()
+        
+        if client_id and client_secret:
+            company.google_client_id = client_id
+            
+            # Voorkom dat we de gemaskeerde '********' weergave overschrijven in de database
+            if client_secret != "********":
+                company.google_client_secret = client_secret
+                
+            company.save()
+            messages.success(request, "Google OAuth credentials succesvol opgeslagen. Start nu de autorisatie.")
+        else:
+            messages.error(request, "Vul zowel het Client ID als het Client Secret in.")
+        return redirect('eventaflow:google_settings')
+
+    context = {
+        'company': company,
+        'has_credentials': bool(company.google_client_id and company.google_client_secret),
+        'is_authorized': bool(company.google_oauth_token),
+    }
+    return render(request, "dashboard/google_settings.html", context)
+
+
+@login_required
+def google_authorize_start(request):
+    """
+    Genereert de autorisatie-URL voor Google en start de flow.
+    We voegen hier een cryptografisch veilige 'state' parameter toe om CSRF-aanvallen te voorkomen.
+    """
+    company = request.user.profile.company
+    if not company:
+        return HttpResponseBadRequest("Geen bedrijf gekoppeld.")
+
+    client_id = company.google_client_id
+    if not client_id:
+        messages.error(request, "Sla eerst je Client ID en Client Secret op.")
+        return redirect('eventaflow:google_settings')
+
+    # Genereer een cryptografisch veilige state en sla deze op in de sessie van de gebruiker
+    state = secrets.token_urlsafe(32)
+    request.session['oauth_state'] = state
+
+    # Bepaal de dynamische callback URI op basis van de huidige host
+    redirect_uri = request.build_absolute_uri(reverse('eventaflow:google_callback'))
+    
+    # Configureer de parameters voor Google OAuth2
+    params = {
+        'client_id': client_id,
+        'redirect_uri': redirect_uri,
+        'response_type': 'code',
+        'scope': 'https://www.googleapis.com/auth/drive https://www.googleapis.com/auth/documents',
+        'access_type': 'offline',  # Essentieel om een 'refresh_token' te ontvangen!
+        'prompt': 'consent',       # Forceert Google om het toestemmingsscherm te tonen
+        'state': state,            # CSRF-beveiliging
+    }
+    
+    authorization_url = f"https://accounts.google.com/o/oauth2/v2/auth?{urllib.parse.urlencode(params)}"
+    return HttpResponseRedirect(authorization_url)
+
+
+@login_required
+def google_authorize_callback(request):
+    """
+    Callback view waar we de 'state' verifiëren en de autorisatiecode inwisselen voor tokens.
+    """
+    company = request.user.profile.company
+    code = request.GET.get('code')
+    returned_state = request.GET.get('state')
+    session_state = request.session.pop('oauth_state', None)
+
+    # 1. CSRF controle via de State parameter
+    if not session_state or returned_state != session_state:
+        messages.error(request, "Veiligheidscontrole mislukt (ongeldige OAuth state). Probeer het opnieuw.")
+        return redirect('eventaflow:google_settings')
+    
+    if not code:
+        messages.error(request, "Geen autorisatiecode ontvangen van Google.")
+        return redirect('eventaflow:google_settings')
+
+    redirect_uri = request.build_absolute_uri(reverse('eventaflow:google_callback'))
+
+    # Wissel de code uit voor tokens
+    token_url = "https://oauth2.googleapis.com/token"
+    payload = {
+        'code': code,
+        'client_id': company.google_client_id,
+        'client_secret': company.google_client_secret,
+        'redirect_uri': redirect_uri,
+        'grant_type': 'authorization_code',
+    }
+
+    try:
+        response = requests.post(token_url, data=payload)
+        response_data = response.json()
+
+        if response.status_code == 200:
+            # Sla de tokens gecodeerd op in de database
+            company.google_oauth_token = response_data
+            company.save()
+            messages.success(request, "Google Account met succes gekoppeld aan de app!")
+            return redirect('eventaflow:google_docs')
+        else:
+            error_desc = response_data.get('error_description', 'Onbekende fout')
+            messages.error(request, f"Fout bij het ophalen van tokens: {error_desc}")
+            return redirect('eventaflow:google_settings')
+
+    except Exception as e:
+        messages.error(request, f"Fout tijdens de netwerkverbinding met Google: {e}")
+        return redirect('eventaflow:dashboard/google_settings')
+
+
+class CompanyDetailView(LoginRequiredMixin, View):
+    """
+    Class-Based View voor het beheren van de bedrijfsgegevens, medewerkers,
+    divisies en de Google OAuth2 API-credentials.
+    """
+    template_name = "companies/company_detail.html"
+
+    def get_context_data(self, company):
+        return {
+            "company": company,
+            "company_employees": UserProfile.objects.filter(company=company),
+            "divisies": Divisies.objects.filter(company=company),
+            "google_configured": bool(company.google_client_id and company.google_client_secret),
+            "google_authorized": bool(company.google_oauth_token),
+        }
+
+    def get(self, request):
+        company = request.user.profile.company
+        if not company:
+            messages.error(request, "Je bent niet gekoppeld aan een bedrijf.")
+            return redirect("eventaflow:dashboard")
+        return render(request, self.template_name, self.get_context_data(company))
+
+    def post(self, request):
+        company = request.user.profile.company
+        if not company:
+            messages.error(request, "Je bent niet gekoppeld aan een bedrijf.")
+            return redirect("eventaflow:dashboard")
+
+        is_admin = request.user.profile.is_company_admin or request.user.is_superuser
+        if not is_admin:
+            messages.error(request, "Je hebt geen rechten om deze actie uit te voeren.")
+            return render(request, self.template_name, self.get_context_data(company))
+
+        # 1. Bedrijfsnaam bijwerken
+        if "update_company" in request.POST:
+            company_name = request.POST.get("company_name", "").strip()
+            if not company_name:
+                messages.error(request, "Voer een bedrijfsnaam in.")
+            else:
+                company.name = company_name
+                company.save()
+                messages.success(request, "Bedrijfsnaam is bijgewerkt.")
+
+        # 2. Medewerker toevoegen via e-mail
+        elif "add_employee" in request.POST:
+            email = request.POST.get("employee_email", "").strip()
+            if not email:
+                messages.error(request, "Voer alstublieft een e-mailadres in.")
+            else:
+                try:
+                    user_to_add = User.objects.get(email__iexact=email)
+                    existing_profile = UserProfile.objects.filter(
+                        user=user_to_add, company=company
+                    ).first()
+                    if existing_profile:
+                        messages.warning(request, f"{user_to_add.username} is al lid van dit bedrijf.")
+                    else:
+                        profile, created = UserProfile.objects.get_or_create(user=user_to_add)
+                        profile.company = company
+                        profile.is_company_admin = False
+                        profile.save()
+                        company.members.add(user_to_add)
+                        messages.success(request, f"{user_to_add.username} is toegevoegd aan het bedrijf.")
+                except User.DoesNotExist:
+                    messages.error(request, f"Geen gebruiker gevonden met e-mailadres '{email}'.")
+
+        # 3. Medewerker verwijderen
+        elif "remove_employee" in request.POST:
+            employee_id = request.POST.get("remove_employee")
+            try:
+                profile = UserProfile.objects.get(id=employee_id, company=company)
+                user_name = profile.user.username
+                profile.delete()
+                messages.success(request, f"{user_name} is verwijderd uit het bedrijf.")
+            except UserProfile.DoesNotExist:
+                messages.error(request, "Medewerker niet gevonden.")
+
+        # 4. Divisie toevoegen of bewerken
+        elif "add_divisie" in request.POST:
+            divisie_name = request.POST.get("divisie_name", "").strip()
+            if not divisie_name:
+                messages.error(request, "Voer alstublieft een divisienaam in.")
+            else:
+                try:
+                    with transaction.atomic():
+                        if Divisies.objects.filter(company=company, divisie_name__iexact=divisie_name).exists():
+                            messages.warning(request, f"Divisie '{divisie_name}' bestaat al.")
+                        else:
+                            Divisies.objects.create(divisie_name=divisie_name, company=company)
+                            messages.success(request, f"Divisie '{divisie_name}' is toegevoegd.")
+                except Exception as e:
+                    messages.error(request, f"Fout bij aanmaken divisie: {e}")
+
+        # 5. Divisie verwijderen
+        elif "remove_divisie" in request.POST:
+            divisie_id = request.POST.get("remove_divisie")
+            try:
+                divisie = Divisies.objects.get(id=divisie_id, company=company)
+                divisie_name = divisie.divisie_name
+                divisie.delete()
+                messages.success(request, f"Divisie '{divisie_name}' is verwijderd.")
+            except Divisies.DoesNotExist:
+                messages.error(request, "Divisie niet gevonden.")
+
+        # 6. Google OAuth Credentials opslaan
+        elif "update_google_credentials" in request.POST:
+            client_id = request.POST.get("google_client_id", "").strip()
+            client_secret = request.POST.get("google_client_secret", "").strip()
+
+            if client_id and client_secret:
+                company.google_client_id = client_id
+                if client_secret != "********":
+                    company.google_client_secret = client_secret
+                company.save()
+                messages.success(request, "Credentials opgeslagen! Klik nu op de groene koppelknop.")
+            else:
+                messages.error(request, "Zowel het Client ID als het Client Secret zijn verplicht.")
+
+        # 7. Google Credentials verwijderen
+        elif "remove_google_credentials" in request.POST:
+            company.google_client_id = None
+            company.google_client_secret = None
+            company.google_oauth_token = None
+            company.save()
+            messages.success(request, "Google Drive integratie succesvol verwijderd.")
+
+        return render(request, self.template_name, self.get_context_data(company))
+
+
+@login_required
+def google_docs_view(request):
+    """
+    Hoofdscherm voor documentenbeheer binnen de gekoppelde divisies en mappen.
+    Vangt eventuele ingetrokken tokens (Revocation) netjes op.
+    """
+    company = request.user.profile.company
+    divisies = Divisies.objects.filter(company=company)
+    docs = GoogleDocument.objects.filter(company=company)
+    
+    iframe_url = None
+    is_configured = bool(company.google_client_id and company.google_client_secret and company.google_oauth_token)
+
+    service = None
+    if is_configured:
+        try:
+            service = GoogleDriveService(company)
+        except Exception as e:
+            # Token Revocation / Intrekken opvangen:
+            # Als Google de tokens weigert, wissen we deze om fouten te voorkomen en zetten de app terug in "Ontkoppeld"
+            logger.error(f"Fout bij starten Google Drive koppeling (mogelijk ingetrokken): {e}")
+            company.google_oauth_token = None
+            company.save()
+            messages.error(
+                request, 
+                "De Google integratie is niet langer geautoriseerd (mogelijks ingetrokken). "
+                "Gelieve opnieuw te koppelen in de instellingen."
+            )
+            is_configured = False
+
+    if request.method == "POST":
+        if not service:
+            messages.error(request, "Google integratie is momenteel niet geautoriseerd.")
+            return redirect('eventaflow:google_docs')
+
+        action = request.POST.get("action")
+        
+        if action == "create_division_folder":
+            divisie_pk = request.POST.get("divisie_pk")
+            divisie = get_object_or_404(Divisies, pk=divisie_pk, company=company)
+            
+            folder_id = service.create_folder(name=divisie.divisie_name, share_with_members=True)
+            if folder_id:
+                divisie.google_drive_folder_id = folder_id
+                divisie.save()
+                messages.success(request, f"Google Drive map succesvol aangemaakt voor '{divisie.divisie_name}'.")
+            else:
+                messages.error(request, "Kan map niet aanmaken.")
+            return redirect('eventaflow:google_docs')
+
+        elif action == "create":
+            title = request.POST.get("title")
+            file_type = request.POST.get("file_type")
+            divisie_pk = request.POST.get("divisie_pk")
+            
+            parent_folder_id = None
+            if divisie_pk:
+                divisie = get_object_or_404(Divisies, pk=divisie_pk, company=company)
+                parent_folder_id = divisie.google_drive_folder_id
+
+            google_file_id = service.create_empty_google_doc(
+                title=title, file_type=file_type, parent_folder_id=parent_folder_id
+            )
+            
+            if google_file_id:
+                GoogleDocument.objects.create(
+                    company=company, title=title, google_file_id=google_file_id, file_type=file_type
+                )
+                messages.success(request, f"Document '{title}' aangemaakt.")
+            else:
+                messages.error(request, "Kan document niet aanmaken.")
+            return redirect('eventaflow:google_docs')
+
+        elif action == "upload":
+            uploaded_file = request.FILES.get("file")
+            upload_title = request.POST.get("upload_title") or uploaded_file.name
+            divisie_pk = request.POST.get("divisie_pk")
+            
+            parent_folder_id = None
+            if divisie_pk:
+                divisie = get_object_or_404(Divisies, pk=divisie_pk, company=company)
+                parent_folder_id = divisie.google_drive_folder_id
+
+            google_file_id, file_type = service.upload_and_convert_file(
+                django_file=uploaded_file,
+                title=upload_title,
+                original_mime_type=uploaded_file.content_type,
+                convert_to_google=True,
+                parent_folder_id=parent_folder_id
+            )
+            
+            if google_file_id:
+                GoogleDocument.objects.create(
+                    company=company, title=upload_title, google_file_id=google_file_id, file_type=file_type
+                )
+                messages.success(request, "Bestand geüpload.")
+            else:
+                messages.error(request, "Upload mislukt.")
+            return redirect('eventaflow:google_docs')
+
+        elif action == "open":
+            doc_pk = request.POST.get("doc_pk")
+            doc = get_object_or_404(GoogleDocument, pk=doc_pk, company=company)
+            service.share_file_with_user(doc.google_file_id, request.user.email, role='writer')
+            iframe_url = service.get_iframe_url(doc.google_file_id, doc.file_type, mode='edit')
+
+        elif action == "share":
+            doc_pk = request.POST.get("doc_pk")
+            doc = get_object_or_404(GoogleDocument, pk=doc_pk, company=company)
+            service.share_folder_with_company_members(doc.google_file_id, role='writer')
+            messages.success(request, f"'{doc.title}' is gedeeld met alle collega's.")
+            return redirect('eventaflow:google_docs')
+
+    context = {
+        'divisies': divisies,
+        'docs': docs,
+        'iframe_url': iframe_url,
+        'is_configured': is_configured,
+        'is_admin': request.user.profile.is_company_admin or request.user.is_superuser,
+    }
+    return render(request, "dashboard/google_docs.html", context)

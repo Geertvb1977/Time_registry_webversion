@@ -3,34 +3,125 @@ Building multi-tenant support into the time registration web application.
 Each company (tenant) has its own set of
 users, customers, projects, and time entries.
 """
+import os
+import json
+import logging
 from django.db import models
 from django.db.models import Max
 from django.contrib.auth.models import User
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 
+# We gebruiken de cryptography bibliotheek voor veilige opslag van de API credentials
+from cryptography.fernet import Fernet
 
-# 1. Het Bedrijf (De 'Tenant')
+logger = logging.getLogger(__name__)
+
+
+# Helper-klasse voor encryptie van gevoelige API credentials in de database
+class CredentialEncryptor:
+    @staticmethod
+    def get_cipher():
+        """
+        Haalt de encryptiesleutel op uit de omgevingsvariabelen.
+        Als deze niet bestaat, genereren we een tijdelijke (niet aanbevolen voor productie!).
+        Voeg 'FIELD_ENCRYPTION_KEY' toe aan je .env of Docker compose.
+        """
+        key = os.environ.get("FIELD_ENCRYPTION_KEY")
+        if not key:
+            logger.warning(
+                "FIELD_ENCRYPTION_KEY omgevingsvariabele ontbreekt! "
+                "Tijdelijke fallback sleutel wordt gebruikt. Credentials gaan verloren bij herstart!"
+            )
+            # Fallback sleutel voor lokale ontwikkeling (veilig gecodeerd)
+            key = "django_local_dev_secret_encryption_key_12345="
+        try:
+            return Fernet(key.encode())
+        except Exception as e:
+            logger.error(f"Fout bij initialiseren van Fernet cipher: {e}")
+            raise
+
+    @classmethod
+    def encrypt(cls, value: str) -> str:
+        if not value:
+            return ""
+        cipher = cls.get_cipher()
+        return cipher.encrypt(value.encode()).decode()
+
+    @classmethod
+    def decrypt(cls, encrypted_value: str) -> str:
+        if not encrypted_value:
+            return ""
+        if not encrypted_value.startswith("gAAAA"):
+            # Waarde is niet versleuteld (migratiefase)
+            return encrypted_value
+        cipher = cls.get_cipher()
+        return cipher.decrypt(encrypted_value.encode()).decode()
+
+
 class Company(models.Model):
     """ Model voor een bedrijf (tenant) """
     name = models.CharField(max_length=100, verbose_name="Bedrijfsnaam")
     created_at = models.DateTimeField(auto_now_add=True)
     members = models.ManyToManyField(User, related_name='companies', blank=True)
-    google_service_account_json = models.JSONField(help_text="Google Service Account JSON voor Google Sheets API", blank=True, null=True)
-    google_client_id = models.CharField(max_length=255, blank=True, null=True, help_text="OAuth Client ID")
-    google_client_secret = models.CharField(max_length=255, blank=True, null=True, help_text="OAuth Client Secret")
-    google_oauth_token = models.JSONField(blank=True, null=True, help_text="OAuth tokens (Access & Refresh)")
+    
+    # NIEUW: Google OAuth2 handmatige credentials per bedrijf
+    google_client_id = models.CharField(
+        max_length=255, 
+        blank=True, 
+        null=True, 
+        help_text="Google OAuth2 Client ID van het bedrijf"
+    )
+    # Gevoelige velden slaan we versleuteld op in de database
+    _google_client_secret_encrypted = models.CharField(
+        db_column='google_client_secret',
+        max_length=512, 
+        blank=True, 
+        null=True, 
+        help_text="Google OAuth2 Client Secret (Versleuteld)"
+    )
+    _google_oauth_token_encrypted = models.TextField(
+        db_column='google_oauth_token',
+        blank=True, 
+        null=True, 
+        help_text="OAuth2 Tokens JSON-structuur (Versleuteld)"
+    )
+
+    # Custom properties om encryptie transparant te maken bij het opvragen/opslaan
+    @property
+    def google_client_secret(self):
+        return CredentialEncryptor.decrypt(self._google_client_secret_encrypted)
+
+    @google_client_secret.setter
+    def google_client_secret(self, value):
+        self._google_client_secret_encrypted = CredentialEncryptor.encrypt(value)
+
+    @property
+    def google_oauth_token(self):
+        decrypted = CredentialEncryptor.decrypt(self._google_oauth_token_encrypted)
+        if decrypted:
+            try:
+                return json.loads(decrypted)
+            except json.JSONDecodeError:
+                return {}
+        return {}
+
+    @google_oauth_token.setter
+    def google_oauth_token(self, value):
+        if value:
+            json_str = json.dumps(value)
+            self._google_oauth_token_encrypted = CredentialEncryptor.encrypt(json_str)
+        else:
+            self._google_oauth_token_encrypted = None
 
     def __str__(self):
         return self.name
 
     class Meta:
-        """Meta informatie voor het bedrijf."""
         verbose_name = "Bedrijf"
         verbose_name_plural = "Bedrijven"
 
 
-# 2. Het Gebruikersprofiel (Koppelt User aan Company)
 class UserProfile(models.Model):
     """ Model voor gebruikersprofielen die bedrijven koppelen aan gebruikers """
     user = models.OneToOneField(
@@ -52,7 +143,6 @@ class UserProfile(models.Model):
         return f"Profiel van {self.user.username}"
 
 
-# 3. Klantmodel (Koppelt klanten aan bedrijven)
 class Customer(models.Model):
     """ Model voor klanten binnen een bedrijf """
     company = models.ForeignKey(Company, on_delete=models.CASCADE, related_name='customers')
@@ -75,13 +165,17 @@ class Customer(models.Model):
         return self.customer_name
 
 
-# 4. Divisiemodel (Koppelt divisies aan bedrijven)
 class Divisies(models.Model):
     """ Model voor divisies binnen een bedrijf """
     divisie_id = models.IntegerField()
     divisie_name = models.CharField(max_length=255)
     company = models.ForeignKey(Company, on_delete=models.CASCADE, related_name='divisies')
-    google_drive_folder_id = models.CharField(max_length=255, blank=True, null=True, help_text="Optioneel: Google Drive map ID voor deze divisie")
+    google_drive_folder_id = models.CharField(
+        max_length=255, 
+        blank=True, 
+        null=True, 
+        help_text="Google Drive map ID voor deze divisie"
+    )
 
     class Meta:
         unique_together = ('company', 'divisie_id')
@@ -98,7 +192,6 @@ class Divisies(models.Model):
         return self.divisie_name
 
 
-# 5. Projectmodel (Koppelt projecten aan bedrijven en klanten)
 class Project(models.Model):
     """ Model voor projecten binnen een bedrijf """
     company = models.ForeignKey(Company, on_delete=models.CASCADE, related_name='projects')
@@ -125,7 +218,6 @@ class Project(models.Model):
         return self.project_name
 
 
-# 6. Tijdregistratiemodel (Koppelt tijdregistraties aan bedrijven, gebruikers, projecten en divisies)
 class TimeRegistry(models.Model):
     """ Model voor tijdregistraties binnen een bedrijf """
     company = models.ForeignKey(Company, on_delete=models.CASCADE, related_name='time_registrys')
@@ -141,7 +233,6 @@ class TimeRegistry(models.Model):
         return f"{self.user.username} - {self.project.project_name} - {self.start_time}"
 
 
-# 7. Mijlpaalmodel (Koppelt mijlpalen aan bedrijven, projecten en divisies)
 class Milstones(models.Model):
     """ Model voor mijlpalen binnen een bedrijf """
     company = models.ForeignKey(Company, on_delete=models.CASCADE, related_name='milstones')
@@ -157,7 +248,6 @@ class Milstones(models.Model):
         return self.title
 
 
-# 8. Taakmodel (Koppelt taken aan bedrijven, gebruikers, klanten, projecten en divisies)
 class Todo(models.Model):
     """ Model voor taken binnen een bedrijf """
     company = models.ForeignKey(Company, on_delete=models.CASCADE, related_name='todos')
@@ -177,11 +267,8 @@ class Todo(models.Model):
         return self.title
 
 
-# 9. Google Sheets Configuratiemodel (Koppelt Google Sheets configuraties aan bedrijven)
 class GoogleDocument(models.Model):
-    """
-    Slaat de koppeling op bedrijven en hun Google Sheets configuraties.
-    """
+    """ Slaat de koppeling op tussen bedrijven en hun Google documenten """
     FILE_TYPES = (
         ('document', 'Google Doc (Bewerkbaar)'),
         ('spreadsheet', 'Google Sheet (Bewerkbaar)'),
@@ -204,16 +291,12 @@ class GoogleDocument(models.Model):
 
 
 # --- SIGNALS ---
-# Deze zorgen ervoor dat als je een User aanmaakt in de admin, er direct een profiel komt.
-
 @receiver(post_save, sender=User)
 def create_user_profile(sender, instance, created, **kwargs):
-    """ Maakt een UserProfile aan wanneer een nieuwe User wordt aangemaakt. """
     if created:
         UserProfile.objects.create(user=instance)
 
 
 @receiver(post_save, sender=User)
 def save_user_profile(sender, instance, **kwargs):
-    """ Slaat het UserProfile op wanneer de User wordt opgeslagen. """
     instance.profile.save()

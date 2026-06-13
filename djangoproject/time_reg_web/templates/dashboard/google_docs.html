@@ -1,182 +1,207 @@
-{% extends "base.html" %}
-
-{% block title %}Google Docs{% endblock title %}
-
-{% block content %}
-
-<div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
-    <div class="p-6 bg-gray-50 border-b border-gray-200 flex justify-between items-center">
-        <div>
-            <h2 class="text-lg font-bold text-gray-900">Google Documents & Sheets</h2>
-            <p class="text-xs text-gray-500">Maak, upload, beheer en open documenten binnen jouw divisies.</p>
-        </div>
-        <div class="flex gap-2">
-            <form method="POST" class="inline">
-                {% csrf_token %}
-                <input type="hidden" name="action" value="sync">
-                <button class="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-bold hover:bg-blue-700">
-                    <i class="fas fa-sync mr-1"></i> Sync van Drive
-                </button>
-            </form>
-            <a href="{% url 'eventaflow:company_detail' %}" class="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg text-sm font-bold hover:bg-gray-400">Terug</a>
-        </div>
-    </div>
-
-    <div class="p-6 grid grid-cols-1 lg:grid-cols-4 gap-6">
-        <!-- LEFT: Controls -->
-        <div class="lg:col-span-1 space-y-6">
-            
-            <!-- NIEUW: Divisiemappen Beheer -->
-            <div class="border border-gray-200 rounded-lg p-4 bg-white">
-                <h3 class="text-sm font-bold text-gray-900 mb-3">Divisiemappen Beheer</h3>
-                <form method="POST" class="space-y-2">
-                    {% csrf_token %}
-                    <input type="hidden" name="action" value="create_division_folder">
-                    <select name="divisie_pk" required class="w-full rounded border-gray-300 text-sm p-2">
-                        <option value="">-- Kies divisie --</option>
-                        {% for divisie in divisies %}
-                            <option value="{{ divisie.pk }}" {% if divisie.google_drive_folder_id %}disabled{% endif %}>
-                                {{ divisie.divisie_name }} {% if divisie.google_drive_folder_id %}(Heeft al map){% endif %}
-                            </option>
-                        {% endfor %}
-                    </select>
-                    <button class="w-full bg-yellow-600 text-white py-2 px-3 rounded-lg text-sm font-bold hover:bg-yellow-700">
-                        <i class="fas fa-folder-plus mr-1"></i> Maak Divisie Map & Deel
-                    </button>
-                </form>
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Google Docs - {{ user.profile.company.name }}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body class="bg-gray-50 min-h-screen">
+     <!-- Navigatie -->
+    <nav class="bg-white shadow-sm border-b border-gray-200">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex justify-between items-center">
+            <div class="flex items-center">
+                <a href="/" class="text-xl font-bold text-blue-600 hover:opacity-80 transition-opacity">
+                    <i class="fas fa-arrow-left mr-2"></i> Terug naar Dashboard
+                </a>
             </div>
-
-            <!-- Create New (Aangepast met Divisie selectie) -->
-            <div class="border border-gray-200 rounded-lg p-4 bg-white">
-                <h3 class="text-sm font-bold text-gray-900 mb-3">Nieuw Document</h3>
-                <form method="POST" class="space-y-2">
-                    {% csrf_token %}
-                    <input type="hidden" name="action" value="create">
-                    <input name="title" required placeholder="Titel" class="w-full rounded border-gray-300 text-sm p-2" />
-                    
-                    <select name="divisie_pk" class="w-full rounded border-gray-300 text-sm p-2">
-                        <option value="">-- Geen Divisie (Hoofdmap) --</option>
-                        {% for divisie in divisies %}
-                            {% if divisie.google_drive_folder_id %}
-                                <option value="{{ divisie.pk }}">{{ divisie.divisie_name }}</option>
-                            {% endif %}
-                        {% endfor %}
-                    </select>
-
-                    <select name="file_type" class="w-full rounded border-gray-300 text-sm p-2">
-                        <option value="document">Google Doc</option>
-                        <option value="spreadsheet">Google Sheet</option>
-                    </select>
-                    <button class="w-full bg-green-600 text-white py-2 px-3 rounded-lg text-sm font-bold hover:bg-green-700">
-                        <i class="fas fa-plus mr-1"></i> Maak aan
-                    </button>
-                </form>
-            </div>
-
-            <!-- Upload & Convert (Aangepast met Divisie selectie) -->
-            <div class="border border-gray-200 rounded-lg p-4 bg-white">
-                <h3 class="text-sm font-bold text-gray-900 mb-3">Upload & Converteer</h3>
-                <form method="POST" enctype="multipart/form-data" class="space-y-2">
-                    {% csrf_token %}
-                    <input type="hidden" name="action" value="upload">
-                    <input type="file" name="file" required accept=".docx,.xlsx,.pdf" class="w-full text-sm" />
-                    <input name="upload_title" placeholder="Naam (optioneel)" class="w-full rounded border-gray-300 text-sm p-2" />
-                    
-                    <select name="divisie_pk" class="w-full rounded border-gray-300 text-sm p-2">
-                        <option value="">-- Geen Divisie (Hoofdmap) --</option>
-                        {% for divisie in divisies %}
-                            {% if divisie.google_drive_folder_id %}
-                                <option value="{{ divisie.pk }}">{{ divisie.divisie_name }}</option>
-                            {% endif %}
-                        {% endfor %}
-                    </select>
-
-                    <button class="w-full bg-purple-600 text-white py-2 px-3 rounded-lg text-sm font-bold hover:bg-purple-700">
-                        <i class="fas fa-upload mr-1"></i> Upload
-                    </button>
-                    <p class="text-xs text-gray-500">Word→Doc, Excel→Sheet, PDF</p>
-                </form>
-            </div>
-
-            <!-- Open & Share -->
-            <div class="border border-gray-200 rounded-lg p-4 bg-white">
-                <h3 class="text-sm font-bold text-gray-900 mb-3">Delen & Openen</h3>
-                <form method="POST" class="space-y-2">
-                    {% csrf_token %}
-                    <input type="hidden" name="action" value="open">
-                    <select name="doc_pk" class="w-full rounded border-gray-300 text-sm p-2">
-                        <option value="">-- Selecteer doc --</option>
-                        {% for d in docs %}
-                            <option value="{{ d.pk }}">{{ d.title }}</option>
-                        {% empty %}
-                            <option disabled>Geen docs</option>
-                        {% endfor %}
-                    </select>
-                    <select name="role" class="w-full rounded border-gray-300 text-sm p-2">
-                        <option value="writer">Schrijven</option>
-                        <option value="reader">Lezen</option>
-                    </select>
-                    <button class="w-full bg-blue-600 text-white py-2 px-3 rounded-lg text-sm font-bold hover:bg-blue-700">
-                        <i class="fas fa-folder-open mr-1"></i> Open
-                    </button>
-                </form>
+            <div class="font-medium text-gray-700">
+                    {{ user.profile.company.name }}
             </div>
         </div>
+    </nav>
 
-        <!-- CENTER: Document List -->
-        <div class="lg:col-span-1">
-            <div class="border border-gray-200 rounded-lg p-4 bg-white h-full">
-                <h3 class="text-sm font-bold text-gray-900 mb-3">Documenten ({{ docs|length }})</h3>
-                <ul class="space-y-2 max-h-[65vh] overflow-y-auto">
-                    {% for d in docs %}
-                        <li class="p-2 border border-gray-100 rounded hover:bg-gray-50 transition">
-                            <div class="font-medium text-sm">{{ d.title }}</div>
-                            <div class="text-xs text-gray-500">{{ d.get_file_type_display }}</div>
-                            <div class="flex gap-1 mt-1">
-                                <form method="POST" class="inline">
-                                    {% csrf_token %}
-                                    <input type="hidden" name="action" value="open">
-                                    <input type="hidden" name="doc_pk" value="{{ d.pk }}">
-                                    <input type="hidden" name="role" value="writer">
-                                    <button class="text-xs px-2 py-0.5 bg-blue-100 text-blue-700 rounded hover:bg-blue-200">Open</button>
-                                </form>
-                                <form method="POST" class="inline">
-                                    {% csrf_token %}
-                                    <input type="hidden" name="action" value="share">
-                                    <input type="hidden" name="doc_pk" value="{{ d.pk }}">
-                                    <input type="hidden" name="role" value="writer">
-                                    <button class="text-xs px-2 py-0.5 bg-yellow-100 text-yellow-700 rounded hover:bg-yellow-200">Deel</button>
-                                </form>
-                            </div>
-                        </li>
-                    {% empty %}
-                        <li class="py-3 text-xs text-gray-500 text-center">Geen documenten.</li>
-                    {% endfor %}
-                </ul>
+    <main class="max-w-7xl mx-auto py-12 px-4">
+        <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+            <div class="p-8 bg-blue-600 text-white">
+                <h1 class="text-2xl font-bold">Google Docs</h1>
+                <p class="text-blue-100 mt-1">Maak en beheer je Google Documents en Sheets.</p>
             </div>
-        </div>
 
-        <!-- RIGHT: Viewer -->
-        <div class="lg:col-span-2">
-            <div class="border border-gray-200 rounded-lg p-4 bg-white h-full">
-                {% if iframe_url %}
-                    <h3 class="text-sm font-bold text-gray-900 mb-3">Viewer</h3>
-                    <div class="border rounded overflow-hidden">
-                        <iframe src="{{ iframe_url }}" class="w-full h-[65vh]" frameborder="0" allow="autoplay"></iframe>
+            <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+                <div class="p-6 bg-gray-50 border-b border-gray-200 flex justify-between items-center">
+                    <div>
+                        <h2 class="text-lg font-bold text-gray-900">Google Documents & Sheets</h2>
+                        <p class="text-xs text-gray-500">Maak, upload, beheer en open documenten binnen jouw divisies.</p>
                     </div>
-                {% else %}
-                    <div class="flex items-center justify-center h-[65vh] bg-gray-50 rounded">
-                        <div class="text-center text-gray-500">
-                            <i class="fas fa-file-alt text-4xl mb-2 opacity-30"></i>
-                            <p class="text-sm">Selecteer een document om het hier te openen</p>
+                    <div class="flex gap-2">
+                        <form method="POST" class="inline">
+                            {% csrf_token %}
+                            <input type="hidden" name="action" value="sync">
+                            <button class="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-bold hover:bg-blue-700">
+                                <i class="fas fa-sync mr-1"></i> Sync van Drive
+                            </button>
+                        </form>
+                        <a href="{% url 'eventaflow:company_detail' %}" class="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg text-sm font-bold hover:bg-gray-400">Terug</a>
+                    </div>
+                </div>
+
+                <div class="p-6 grid grid-cols-1 lg:grid-cols-4 gap-6">
+                    <!-- LEFT: Controls -->
+                    <div class="lg:col-span-1 space-y-6">
+                        
+                        <!-- NIEUW: Divisiemappen Beheer -->
+                        <div class="border border-gray-200 rounded-lg p-4 bg-white">
+                            <h3 class="text-sm font-bold text-gray-900 mb-3">Divisiemappen Beheer</h3>
+                            <form method="POST" class="space-y-2">
+                                {% csrf_token %}
+                                <input type="hidden" name="action" value="create_division_folder">
+                                <select name="divisie_pk" required class="w-full rounded border-gray-300 text-sm p-2">
+                                    <option value="">-- Kies divisie --</option>
+                                    {% for divisie in divisies %}
+                                        <option value="{{ divisie.pk }}" {% if divisie.google_drive_folder_id %}disabled{% endif %}>
+                                            {{ divisie.divisie_name }} {% if divisie.google_drive_folder_id %}(Heeft al map){% endif %}
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                                <button class="w-full bg-yellow-600 text-white py-2 px-3 rounded-lg text-sm font-bold hover:bg-yellow-700">
+                                    <i class="fas fa-folder-plus mr-1"></i> Maak Divisie Map & Deel
+                                </button>
+                            </form>
+                        </div>
+
+                        <!-- Create New (Aangepast met Divisie selectie) -->
+                        <div class="border border-gray-200 rounded-lg p-4 bg-white">
+                            <h3 class="text-sm font-bold text-gray-900 mb-3">Nieuw Document</h3>
+                            <form method="POST" class="space-y-2">
+                                {% csrf_token %}
+                                <input type="hidden" name="action" value="create">
+                                <input name="title" required placeholder="Titel" class="w-full rounded border-gray-300 text-sm p-2" />
+                                
+                                <select name="divisie_pk" class="w-full rounded border-gray-300 text-sm p-2">
+                                    <option value="">-- Geen Divisie (Hoofdmap) --</option>
+                                    {% for divisie in divisies %}
+                                        {% if divisie.google_drive_folder_id %}
+                                            <option value="{{ divisie.pk }}">{{ divisie.divisie_name }}</option>
+                                        {% endif %}
+                                    {% endfor %}
+                                </select>
+
+                                <select name="file_type" class="w-full rounded border-gray-300 text-sm p-2">
+                                    <option value="document">Google Doc</option>
+                                    <option value="spreadsheet">Google Sheet</option>
+                                </select>
+                                <button class="w-full bg-green-600 text-white py-2 px-3 rounded-lg text-sm font-bold hover:bg-green-700">
+                                    <i class="fas fa-plus mr-1"></i> Maak aan
+                                </button>
+                            </form>
+                        </div>
+
+                        <!-- Upload & Convert (Aangepast met Divisie selectie) -->
+                        <div class="border border-gray-200 rounded-lg p-4 bg-white">
+                            <h3 class="text-sm font-bold text-gray-900 mb-3">Upload & Converteer</h3>
+                            <form method="POST" enctype="multipart/form-data" class="space-y-2">
+                                {% csrf_token %}
+                                <input type="hidden" name="action" value="upload">
+                                <input type="file" name="file" required accept=".docx,.xlsx,.pdf" class="w-full text-sm" />
+                                <input name="upload_title" placeholder="Naam (optioneel)" class="w-full rounded border-gray-300 text-sm p-2" />
+                                
+                                <select name="divisie_pk" class="w-full rounded border-gray-300 text-sm p-2">
+                                    <option value="">-- Geen Divisie (Hoofdmap) --</option>
+                                    {% for divisie in divisies %}
+                                        {% if divisie.google_drive_folder_id %}
+                                            <option value="{{ divisie.pk }}">{{ divisie.divisie_name }}</option>
+                                        {% endif %}
+                                    {% endfor %}
+                                </select>
+
+                                <button class="w-full bg-purple-600 text-white py-2 px-3 rounded-lg text-sm font-bold hover:bg-purple-700">
+                                    <i class="fas fa-upload mr-1"></i> Upload
+                                </button>
+                                <p class="text-xs text-gray-500">Word→Doc, Excel→Sheet, PDF</p>
+                            </form>
+                        </div>
+
+                        <!-- Open & Share -->
+                        <div class="border border-gray-200 rounded-lg p-4 bg-white">
+                            <h3 class="text-sm font-bold text-gray-900 mb-3">Delen & Openen</h3>
+                            <form method="POST" class="space-y-2">
+                                {% csrf_token %}
+                                <input type="hidden" name="action" value="open">
+                                <select name="doc_pk" class="w-full rounded border-gray-300 text-sm p-2">
+                                    <option value="">-- Selecteer doc --</option>
+                                    {% for d in docs %}
+                                        <option value="{{ d.pk }}">{{ d.title }}</option>
+                                    {% empty %}
+                                        <option disabled>Geen docs</option>
+                                    {% endfor %}
+                                </select>
+                                <select name="role" class="w-full rounded border-gray-300 text-sm p-2">
+                                    <option value="writer">Schrijven</option>
+                                    <option value="reader">Lezen</option>
+                                </select>
+                                <button class="w-full bg-blue-600 text-white py-2 px-3 rounded-lg text-sm font-bold hover:bg-blue-700">
+                                    <i class="fas fa-folder-open mr-1"></i> Open
+                                </button>
+                            </form>
                         </div>
                     </div>
-                {% endif %}
+
+                    <!-- CENTER: Document List -->
+                    <div class="lg:col-span-1">
+                        <div class="border border-gray-200 rounded-lg p-4 bg-white h-full">
+                            <h3 class="text-sm font-bold text-gray-900 mb-3">Documenten ({{ docs|length }})</h3>
+                            <ul class="space-y-2 max-h-[65vh] overflow-y-auto">
+                                {% for d in docs %}
+                                    <li class="p-2 border border-gray-100 rounded hover:bg-gray-50 transition">
+                                        <div class="font-medium text-sm">{{ d.title }}</div>
+                                        <div class="text-xs text-gray-500">{{ d.get_file_type_display }}</div>
+                                        <div class="flex gap-1 mt-1">
+                                            <form method="POST" class="inline">
+                                                {% csrf_token %}
+                                                <input type="hidden" name="action" value="open">
+                                                <input type="hidden" name="doc_pk" value="{{ d.pk }}">
+                                                <input type="hidden" name="role" value="writer">
+                                                <button class="text-xs px-2 py-0.5 bg-blue-100 text-blue-700 rounded hover:bg-blue-200">Open</button>
+                                            </form>
+                                            <form method="POST" class="inline">
+                                                {% csrf_token %}
+                                                <input type="hidden" name="action" value="share">
+                                                <input type="hidden" name="doc_pk" value="{{ d.pk }}">
+                                                <input type="hidden" name="role" value="writer">
+                                                <button class="text-xs px-2 py-0.5 bg-yellow-100 text-yellow-700 rounded hover:bg-yellow-200">Deel</button>
+                                            </form>
+                                        </div>
+                                    </li>
+                                {% empty %}
+                                    <li class="py-3 text-xs text-gray-500 text-center">Geen documenten.</li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                    </div>
+
+                    <!-- RIGHT: Viewer -->
+                    <div class="lg:col-span-2">
+                        <div class="border border-gray-200 rounded-lg p-4 bg-white h-full">
+                            {% if iframe_url %}
+                                <h3 class="text-sm font-bold text-gray-900 mb-3">Viewer</h3>
+                                <div class="border rounded overflow-hidden">
+                                    <iframe src="{{ iframe_url }}" class="w-full h-[65vh]" frameborder="0" allow="autoplay"></iframe>
+                                </div>
+                            {% else %}
+                                <div class="flex items-center justify-center h-[65vh] bg-gray-50 rounded">
+                                    <div class="text-center text-gray-500">
+                                        <i class="fas fa-file-alt text-4xl mb-2 opacity-30"></i>
+                                        <p class="text-sm">Selecteer een document om het hier te openen</p>
+                                    </div>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
-    </div>
-
-</div>
-
-{% endblock content %}
-
+    </main>
+</body>
+</html>
