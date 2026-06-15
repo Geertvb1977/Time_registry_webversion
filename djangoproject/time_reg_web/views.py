@@ -5,6 +5,7 @@ import requests
 import openpyxl
 import secrets
 import json
+import logging
 
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
@@ -40,7 +41,7 @@ from .models import (
 from .mixins import TenantObjectMixin
 from .forms import RegistrationForm, TodoForm, DivisieForm, MilestoneForm
 
-
+logger = logging.getLogger(__name__)
 
 # 1. Het Dashboard (Hoofdpagina)
 class DashboardView(TenantObjectMixin, View):
@@ -815,9 +816,70 @@ def google_docs_view(request):
             return redirect('eventaflow:google_docs')
 
         action = request.POST.get("action")
-        
+
+        # Activeer de synchronisatieknop (Sync van Drive)
+        if action == "sync":
+            synced_count = 0
+            
+            # 1. Haal bestanden op uit de hoofdmap (root) van de gekoppelde Drive
+            drive_files = service.list_files_from_drive(limit=50)
+            for f in drive_files:
+                file_id = f.get('id')
+                name = f.get('name')
+                mime_type = f.get('mimeType')
+                
+                # Filter uitsluitend Google Docs en Sheets
+                if mime_type == 'application/vnd.google-apps.document':
+                    file_type = 'document'
+                elif mime_type == 'application/vnd.google-apps.spreadsheet':
+                    file_type = 'spreadsheet'
+                else:
+                    continue  # Sla overige bestandstypen over
+                
+                # Importeer het bestand in de Eventaflow-database als het nog niet bestaat
+                obj, created = GoogleDocument.objects.get_or_create(
+                    google_file_id=file_id,
+                    defaults={
+                        'company': company,
+                        'title': name,
+                        'file_type': file_type
+                    }
+                )
+                if created:
+                    synced_count += 1
+            
+            # 2. Haal ook alle bestanden op die binnen bestaande divisie-mappen staan
+            for divisie in divisies:
+                if divisie.google_drive_folder_id:
+                    folder_files = service.list_files_from_drive(limit=50, folder_id=divisie.google_drive_folder_id)
+                    for f in folder_files:
+                        file_id = f.get('id')
+                        name = f.get('name')
+                        mime_type = f.get('mimeType')
+                        
+                        if mime_type == 'application/vnd.google-apps.document':
+                            file_type = 'document'
+                        elif mime_type == 'application/vnd.google-apps.spreadsheet':
+                            file_type = 'spreadsheet'
+                        else:
+                            continue
+                            
+                        obj, created = GoogleDocument.objects.get_or_create(
+                            google_file_id=file_id,
+                            defaults={
+                                'company': company,
+                                'title': name,
+                                'file_type': file_type
+                            }
+                        )
+                        if created:
+                            synced_count += 1
+                            
+            messages.success(request, f"Synchronisatie voltooid! {synced_count} nieuwe documenten van Google Drive geïmporteerd.")
+            return redirect('eventaflow:google_docs')
+
         # 1. Handmatig aanmaken en delen van een Divisie-map
-        if action == "create_division_folder":
+        elif action == "create_division_folder":
             divisie_pk = request.POST.get("divisie_pk")
             divisie = get_object_or_404(Divisies, pk=divisie_pk, company=company)
             
@@ -1462,14 +1524,100 @@ def google_docs_view(request):
             )
             is_configured = False
 
+    # DYNAMISCHE MAPPING IN HET GEHEUGEN:
+    # We lopen alle divisiemappen langs op Google Drive en mappen de lokale docs in-memory naar de juiste divisie-ID
+    if service:
+        # Initialiseer temp parameters op alle geladen docs
+        for d in docs:
+            d.temp_divisie_id = "root"
+            d.temp_divisie_name = "Hoofdmap"
+
+        for divisie in divisies:
+            if divisie.google_drive_folder_id:
+                try:
+                    # Haal bestanden op specifiek binnen deze divisiemap
+                    folder_files = service.list_files_from_drive(limit=100, folder_id=divisie.google_drive_folder_id)
+                    folder_file_ids = {f.get('id') for f in folder_files}
+                    for d in docs:
+                        if d.google_file_id in folder_file_ids:
+                            d.temp_divisie_id = str(divisie.pk)
+                            d.temp_divisie_name = divisie.divisie_name
+                except Exception as e:
+                    logger.warning(f"Kon mappen van divisie '{divisie.divisie_name}' niet uitlezen: {e}")
+
     if request.method == "POST":
         if not service:
             messages.error(request, "Google integratie is momenteel niet geautoriseerd.")
             return redirect('eventaflow:google_docs')
 
         action = request.POST.get("action")
-        
-        if action == "create_division_folder":
+
+        # Synchroniseer bestanden vanuit de Google Drive (Hoofdmap + Divisiemappen)
+        if action == "sync":
+            synced_count = 0
+            
+            # CORRECTIE 1: Haal ENKEL bestanden op die DIRECT in de hoofdmap (root) staan (voorkomt dupliceren in mappen)
+            try:
+                drive_files = service.list_files_from_drive(limit=50, folder_id='root')
+                for f in drive_files:
+                    file_id = f.get('id')
+                    name = f.get('name')
+                    mime_type = f.get('mimeType')
+                    
+                    if mime_type == 'application/vnd.google-apps.document':
+                        file_type = 'document'
+                    elif mime_type == 'application/vnd.google-apps.spreadsheet':
+                        file_type = 'spreadsheet'
+                    else:
+                        continue
+                    
+                    obj, created = GoogleDocument.objects.get_or_create(
+                        google_file_id=file_id,
+                        defaults={
+                            'company': company,
+                            'title': name,
+                            'file_type': file_type
+                        }
+                    )
+                    if created:
+                        synced_count += 1
+            except Exception as e:
+                logger.error(f"Fout bij synchroniseren hoofdmap: {e}")
+            
+            # 2. Haal alle bestanden op die binnen bestaande divisie-mappen staan
+            for divisie in divisies:
+                if divisie.google_drive_folder_id:
+                    try:
+                        folder_files = service.list_files_from_drive(limit=50, folder_id=divisie.google_drive_folder_id)
+                        for f in folder_files:
+                            file_id = f.get('id')
+                            name = f.get('name')
+                            mime_type = f.get('mimeType')
+                            
+                            if mime_type == 'application/vnd.google-apps.document':
+                                file_type = 'document'
+                            elif mime_type == 'application/vnd.google-apps.spreadsheet':
+                                file_type = 'spreadsheet'
+                            else:
+                                continue
+                                
+                            obj, created = GoogleDocument.objects.get_or_create(
+                                google_file_id=file_id,
+                                defaults={
+                                    'company': company,
+                                    'title': name,
+                                    'file_type': file_type
+                                }
+                            )
+                            if created:
+                                synced_count += 1
+                    except Exception as e:
+                        logger.error(f"Fout bij synchroniseren divisie-map '{divisie.divisie_name}': {e}")
+                            
+            messages.success(request, f"Synchronisatie voltooid! {synced_count} nieuwe documenten van Google Drive geïmporteerd.")
+            return redirect('eventaflow:google_docs')
+
+        elif action == "create_division_folder":
             divisie_pk = request.POST.get("divisie_pk")
             divisie = get_object_or_404(Divisies, pk=divisie_pk, company=company)
             
@@ -1537,14 +1685,14 @@ def google_docs_view(request):
             doc = get_object_or_404(GoogleDocument, pk=doc_pk, company=company)
             service.share_file_with_user(doc.google_file_id, request.user.email, role='writer')
             iframe_url = service.get_iframe_url(doc.google_file_id, doc.file_type, mode='edit')
-
+        '''
         elif action == "share":
-            doc_pk = request.POST.get("doc_pk")
+            doc_pk = requests.request.POST.get("doc_pk")
             doc = get_object_or_404(GoogleDocument, pk=doc_pk, company=company)
             service.share_folder_with_company_members(doc.google_file_id, role='writer')
             messages.success(request, f"'{doc.title}' is gedeeld met alle collega's.")
             return redirect('eventaflow:google_docs')
-
+        '''
     context = {
         'divisies': divisies,
         'docs': docs,

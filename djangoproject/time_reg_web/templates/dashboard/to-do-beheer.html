@@ -26,14 +26,14 @@
     </nav>
 
     <!-- Witte Banner Header -->
-    <header class="bg-white text-blue-600 py-10 shadow-inner">
+    <header class="bg-white text-purple-600 py-10 shadow-inner">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
                 <div>
                     <h1 class="text-3xl font-extrabold tracking-tight">To-do beheer</h1>
-                    <p class="mt-2 text-blue-600">Organiseer je werk, wijs taken toe en volg de voortgang per project.</p>
+                    <p class="mt-2 text-purple-600">Organiseer je werk, wijs taken toe en volg de voortgang per project.</p>
                 </div>
-                <a href="{% url 'eventaflow:todo_list' %}" class="inline-flex items-center px-5 py-2.5 bg-white text-blue-600 rounded-lg font-bold hover:bg-blue-50 transition-all shadow-lg active:transform active:scale-95">
+                <a href="{% url 'eventaflow:todo_list' %}" class="inline-flex items-center px-5 py-2.5 bg-white text-purple-600 rounded-lg font-bold hover:bg-purple-50 transition-all shadow-lg active:transform active:scale-95">
                     <i class="fas fa-plus-circle mr-2"></i> Nieuwe Taak
                 </a>
             </div>
@@ -140,7 +140,7 @@
             <!-- RECHTER KOLOM (2/3): Formulier -->
             <div class="lg:col-span-2">
                 <div class="bg-white rounded-xl shadow-xl border border-gray-200 overflow-hidden sticky top-6">
-                    <div class="p-6 bg-gradient-to-r from-blue-600 to-blue-700 text-white">
+                    <div class="p-6 bg-purple-600 text-white">
                         <h2 class="text-xl font-bold flex items-center">
                             <i class="fas fa-edit mr-3"></i>
                             {% if edit_id %}Taak aanpassen{% else %}Taak aanmaken{% endif %}
@@ -248,7 +248,7 @@
                             <a href="{% url 'eventaflow:todo_list' %}" class="order-2 sm:order-1 flex-1 px-6 py-3.5 border border-gray-200 text-gray-600 rounded-xl font-bold hover:bg-gray-50 hover:border-gray-300 transition-all text-center">
                                 Annuleren
                             </a>
-                            <button type="submit" class="order-1 sm:order-2 flex-[2] px-6 py-3.5 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 hover:shadow-lg transition-all flex items-center justify-center">
+                            <button type="submit" class="order-1 sm:order-2 flex-[2] px-6 py-3.5 bg-purple-600 text-white rounded-xl font-bold hover:bg-purple-700 hover:shadow-lg transition-all flex items-center justify-center">
                                 <i class="fas fa-check-circle mr-2"></i> {% if edit_id %}Taak bijwerken{% else %}Taak aanmaken{% endif %}
                             </button>
                         </div>

@@ -25,14 +25,14 @@
         </div>
     </nav>
 
-    <main class="flex-grow flex items-center justify-center p-4">
-        <div class="max-w-md w-full bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden">
+    <main class="max-w-3xl mx-auto py-12 px-4">
+        <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
             <div class="p-8 bg-blue-600 text-white text-center">
                 <div class="inline-flex items-center justify-center w-16 h-16 bg-white/20 rounded-full mb-4">
                     <i class="fas fa-user-plus text-2xl"></i>
                 </div>
-                <h1 class="text-2xl font-bold">{% if form.instance.pk %}Klant bewerken{% else %}Nieuwe Klant Toevoegen of Bewerken{% endif %}</h1>
-                <p class="text-blue-100 mt-2 text-sm text-balance">{% if form.instance.pk %}Pas de klantnaam en het e-mailadres aan.{% else %}Vul de gegevens in om een nieuwe klant aan je bedrijf toe te voegen.{% endif %}</p>
+                <h1 class="text-2xl font-bold">Nieuwe Klant Toevoegen of Bewerken</h1>
+                <p class="text-blue-100 mt-1">Vul de gegevens in om een nieuwe klant aan je bedrijf toe te voegen.</p>
             </div>
 
             <form method="POST" class="p-8 space-y-6">
