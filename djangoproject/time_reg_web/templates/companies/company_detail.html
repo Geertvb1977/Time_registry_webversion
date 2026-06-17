@@ -1,5 +1,7 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="nl">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -152,8 +154,19 @@
 
             <!-- GOOGLE DRIVE & OAUTH CONFIGURATION (NIEUWE OAUTH2 IMPLEMENTATIE) -->
             <div class="p-8 border-t border-gray-100">
-                <h2 class="text-xl font-semibold text-gray-800">Google Drive & Documenten Integratie (OAuth2)</h2>
-                <p class="text-gray-500 mb-4">Voer hier de OAuth2 credentials in van jouw bedrijf om direct documenten, spreadsheets en mappen aan te maken onder je eigen Google opslagquota.</p>
+                <!-- Flex container om de knop prachtig naast de titel te plaatsen -->
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
+                    <div>
+                        <h2 class="text-xl font-semibold text-gray-800">Google Drive & Documenten Integratie (OAuth2)</h2>
+                        <p class="text-xs text-gray-500 mt-1">Voer hier de OAuth2 credentials in van jouw bedrijf.</p>
+                    </div>
+                    <!-- Directe downloadknop prachtig uitgelijnd -->
+                    <div>
+                        <a href="{% static 'manuals/Eventaflow_Google_Drive_Koppeling_Handleiding.pdf' %}" download class="px-4 py-2 bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200 rounded-xl text-xs font-bold transition flex items-center gap-2 shadow-sm whitespace-nowrap">
+                            <i class="fas fa-file-pdf text-sm"></i> Download handleiding (PDF)
+                        </a>
+                    </div>
+                </div>
 
                 <!-- Actieve Verbindingsstatus -->
                 <div class="p-4 rounded-xl border flex items-center justify-between mb-6 {% if google_authorized %}bg-green-50 border-green-200{% else %}bg-yellow-50 border-yellow-200{% endif %}">
