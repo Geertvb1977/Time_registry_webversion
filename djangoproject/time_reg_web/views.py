@@ -19,9 +19,12 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth import logout, login
 from django.utils import timezone
 
-from django.http import HttpResponse, HttpResponseRedirect, HttpResponseBadRequest
+from django.http import HttpResponse, HttpResponseRedirect, HttpResponseBadRequest, JsonResponse, HttpResponseForbidden
 from django.urls import reverse_lazy, reverse
 from django.views.generic.base import RedirectView
+from django.core.mail import send_mail, EmailMultiAlternatives
+from django.template.loader import render_to_string
+from django.views.decorators.csrf import csrf_exempt
 
 from .models import UserProfile, Company, Divisies, GoogleDocument
 from .google_drive_service import GoogleDriveService
@@ -37,6 +40,8 @@ from .models import (
     Divisies,
     Milstones,
     GoogleDocument,
+    APIToken,
+    APITokenUsage,
 )
 from .mixins import TenantObjectMixin
 from .forms import RegistrationForm, TodoForm, DivisieForm, MilestoneForm
@@ -1220,7 +1225,7 @@ def view_document(request, doc_id):
     if document.file_type == 'document':
         embed_url = f"https://docs.google.com/document/d/{document.google_file_id}/edit?usp=embed_javascript"
     elif document.file_type == 'spreadsheet':
-        embed_url = f"https://docs.google.com/spreadsheets/d/{document.google_file_id}/edit?usp=embed_javascript"
+        embed_url = f"https://docs.google.com/spreadsheets/d/{document.google_file_id}/edit?usp=drivesdk&rm=minimal"
     else:
         # Voor PDFs en overige binaire bestanden gebruiken we de universele Google Drive previewer
         embed_url = f"https://drive.google.com/file/d/{document.google_file_id}/preview"
@@ -1362,6 +1367,200 @@ def google_authorize_callback(request):
     except Exception as e:
         messages.error(request, f"Fout tijdens de netwerkverbinding met Google: {e}")
         return redirect('eventaflow:dashboard/google_settings')
+
+
+@login_required
+def generate_project_api_token(request, project_id):
+    """Generate an API token for a project and email it to the provided address.
+
+    POST params: `email` (recipient), `single_use` (optional)
+    """
+    company = request.user.profile.company
+    if not company:
+        return HttpResponseBadRequest("No company")
+
+    # only company admins may generate tokens
+    if not (request.user.profile.is_company_admin or request.user.is_superuser):
+        return HttpResponseForbidden("Not allowed")
+
+    project = get_object_or_404(Project, id=project_id, company=company)
+    if request.method != 'POST':
+        return HttpResponseBadRequest('POST required')
+
+    recipient = request.POST.get('email')
+    single_use = request.POST.get('single_use', 'true').lower() in ('1','true','yes')
+    if not recipient:
+        return HttpResponseBadRequest('email required')
+
+    key = APIToken.generate_key()
+    token = APIToken.objects.create(
+        key=key,
+        project=project,
+        company=company,
+        created_by=request.user,
+        single_use=single_use,
+    )
+
+    # Build a one-click URL that contains the token as a query param
+    url = request.build_absolute_uri(reverse('eventaflow:api_project_status')) + f"?token={token.key}&project_id={project.id}"
+
+    subject = f"API toegang voor project {project.project_name}"
+    # Render plaintext and HTML email with a button
+    plaintext = render_to_string('emails/api_token_email.txt', {'url': url, 'project': project})
+    html_content = render_to_string('emails/api_token_email.html', {'url': url, 'project': project})
+    msg = EmailMultiAlternatives(subject, plaintext, None, [recipient])
+    msg.attach_alternative(html_content, "text/html")
+    try:
+        msg.send(fail_silently=True)
+    except Exception:
+        logger.exception('Failed to send API token email')
+
+    return JsonResponse({'status': 'ok', 'token': token.key})
+
+
+def _get_token_from_request(request):
+    # Try header Authorization: Token <key>
+    auth = request.META.get('HTTP_AUTHORIZATION', '')
+    if auth.startswith('Token '):
+        return auth.split(' ',1)[1].strip()
+    # fallback to query param
+    return request.GET.get('token') or request.POST.get('token')
+
+
+def api_project_status(request):
+    """Return project status as JSON when a valid token is supplied.
+
+    Accepts token via `Authorization: Token <key>` header or `?token=` query param.
+    """
+    token_key = _get_token_from_request(request)
+    project_id = request.GET.get('project_id') or request.POST.get('project_id')
+    if not token_key or not project_id:
+        return HttpResponseForbidden('token and project_id required')
+
+    try:
+        token = APIToken.objects.get(key=token_key, is_active=True)
+    except APIToken.DoesNotExist:
+        return HttpResponseForbidden('invalid token')
+
+    # check expiry
+    if token.expires_at and timezone.now() > token.expires_at:
+        return HttpResponseForbidden('token expired')
+
+    if str(token.project.id) != str(project_id):
+        return HttpResponseForbidden('project mismatch')
+
+    project = token.project
+
+    # Build a simple status payload
+    time_entries = TimeRegistry.objects.filter(project=project).order_by('-start_time')[:20]
+    entries = [
+        {
+            'user': t.user.username,
+            'start_time': t.start_time.isoformat(),
+            'end_time': t.end_time.isoformat() if t.end_time else None,
+            'description': t.description,
+        }
+        for t in time_entries
+    ]
+
+    payload = {
+        'project': {
+            'id': project.id,
+            'name': project.project_name,
+            'description': project.project_description,
+            'is_active': project.is_active,
+        },
+        'recent_time_entries': entries,
+    }
+
+    # record usage
+    try:
+        remote_ip = request.META.get('HTTP_X_FORWARDED_FOR', request.META.get('REMOTE_ADDR'))
+        user_agent = request.META.get('HTTP_USER_AGENT', '')
+        APITokenUsage.objects.create(token=token, remote_ip=remote_ip, user_agent=user_agent)
+    except Exception:
+        logger.exception('Failed to record token usage')
+
+    # include todos and milestones for the project
+    todos_qs = Todo.objects.filter(project_id=project).order_by('-created_at')[:50]
+    milestones_qs = Milstones.objects.filter(project=project).order_by('-due_date')[:50]
+
+    payload['todos'] = [
+        {
+            'id': t.id,
+            'title': t.title,
+            'description': t.description,
+            'is_completed': t.is_completed,
+            'due_date': t.due_date.isoformat() if t.due_date else None,
+        }
+        for t in todos_qs
+    ]
+
+    payload['milestones'] = [
+        {
+            'id': m.id,
+            'title': m.title,
+            'description': m.description,
+            'is_completed': m.is_completed,
+            'due_date': m.due_date.isoformat() if m.due_date else None,
+        }
+        for m in milestones_qs
+    ]
+
+    # mark token used if single-use
+    token.mark_used()
+
+    return JsonResponse(payload)
+
+
+
+@csrf_exempt
+def generate_project_api_token_api(request, project_id):
+    """Programmatic endpoint to generate an API token for a project.
+
+    Protects with an application API key sent via header `X-APP-API-KEY` or
+    query param `api_key`. Does not require CSRF.
+    """
+    from django.conf import settings
+
+    # Check API key
+    header_key = request.META.get('HTTP_X_APP_API_KEY')
+    api_key = header_key or request.GET.get('api_key') or request.POST.get('api_key')
+    if not api_key or api_key != getattr(settings, 'APP_API_KEY', ''):
+        return HttpResponseForbidden('invalid api key')
+
+    # Only POST allowed
+    if request.method != 'POST':
+        return HttpResponseBadRequest('POST required')
+
+    recipient = request.POST.get('email') or request.GET.get('email')
+    single_use = (request.POST.get('single_use') or request.GET.get('single_use') or 'true').lower() in ('1','true','yes')
+    if not recipient:
+        return HttpResponseBadRequest('email required')
+
+    project = get_object_or_404(Project, id=project_id)
+
+    key = APIToken.generate_key()
+    token = APIToken.objects.create(
+        key=key,
+        project=project,
+        company=project.company,
+        created_by=None,
+        single_use=single_use,
+    )
+
+    url = request.build_absolute_uri(reverse('eventaflow:api_project_status')) + f"?token={token.key}&project_id={project.id}"
+    subject = f"API toegang voor project {project.project_name}"
+    plaintext = render_to_string('emails/api_token_email.txt', {'url': url, 'project': project})
+    html_content = render_to_string('emails/api_token_email.html', {'url': url, 'project': project})
+    msg = EmailMultiAlternatives(subject, plaintext, None, [recipient])
+    msg.attach_alternative(html_content, "text/html")
+    try:
+        msg.send(fail_silently=True)
+    except Exception:
+        logger.exception('Failed to send API token email (api)')
+
+    return JsonResponse({'status': 'ok', 'token': token.key})
 
 
 class CompanyDetailView(LoginRequiredMixin, View):

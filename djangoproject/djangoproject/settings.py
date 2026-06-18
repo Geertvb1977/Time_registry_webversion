@@ -136,6 +136,7 @@ STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 
 
+
 STATICFILES_DIRS = [
     BASE_DIR / "time_reg_web" / "static",
 ]
@@ -174,3 +175,7 @@ DEFAULT_FROM_EMAIL = 'Bedrijfsnaam <noreply@eventaflow.eu>'
 # Belangrijk voor Traefik/HTTPS links in de mail:
 USE_X_FORWARDED_HOST = True
 USE_X_FORWARDED_PORT = True
+
+# Application-level API key for automated actions (generate tokens programmatically)
+# Set this in your deployment environment as APP_API_KEY
+APP_API_KEY = os.environ.get('APP_API_KEY', '')

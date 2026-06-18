@@ -26,7 +26,7 @@
     </nav>
 
     <main class="flex-grow flex items-center justify-center p-4 py-12">
-        <div class="max-w-2xl w-full bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden">
+        <div class="max-w-5xl w-full bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden">
             <!-- Header -->
             <div class="p-8 bg-green-600 text-white text-center">
                 <div class="inline-flex items-center justify-center w-16 h-16 bg-white/20 rounded-full mb-4">
@@ -125,9 +125,19 @@
                                     <td class="px-4 py-3 text-sm text-gray-600">{{ project.end_date|date:'d-m-Y'|default:'-' }}</td>
                                     <td class="px-4 py-3 text-sm text-gray-600">{% if project.is_active %}Actief{% else %}Inactief{% endif %}</td>
                                     <td class="px-4 py-3">
-                                        <a href="{% url 'eventaflow:project_edit' project.pk %}" class="inline-flex items-center px-3 py-2 text-sm font-medium bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors">
-                                            <i class="fas fa-pen mr-2"></i> Bewerken
-                                        </a>
+                                        <div class="flex items-center gap-2">
+                                            <a href="{% url 'eventaflow:project_edit' project.pk %}" class="inline-flex items-center px-3 py-2 text-sm font-medium bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors">
+                                                <i class="fas fa-pen mr-2"></i> Bewerken
+                                            </a>
+                                            <form method="POST" action="{% url 'eventaflow:generate_project_api_token' project.pk %}" class="inline-flex items-center">
+                                                {% csrf_token %}
+                                                <input type="email" name="email" required placeholder="Klant email" class="text-sm px-2 py-1 border rounded mr-2" />
+                                                <input type="hidden" name="single_use" value="true" />
+                                                <button type="submit" class="inline-flex items-center px-3 py-2 text-sm font-medium bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-colors">
+                                                    <i class="fas fa-key mr-2"></i> Genereer API
+                                                </button>
+                                            </form>
+                                        </div>
                                     </td>
                                 </tr>
                                 {% endfor %}

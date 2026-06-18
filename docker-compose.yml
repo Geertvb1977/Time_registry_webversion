@@ -4,6 +4,8 @@
 services:
   web:
     build: .
+    volumes:
+      - ./static:/app/static
     ports:
       - "8000:8000"
     env_file:

@@ -1,0 +1,5 @@
+Open the following link to access the project status API for project "{{ project.project_name }}":
+
+{{ url }}
+
+This link will allow access to the project status. If you did not request this, ignore this email.

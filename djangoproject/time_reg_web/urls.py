@@ -26,4 +26,7 @@ urlpatterns = [
     path('google/settings/', views.google_settings_view, name='google_settings'),
     path('google/authorize/', views.google_authorize_start, name='google_authorize'),
     path('google/callback/', views.google_authorize_callback, name='google_callback'),
+    path('project/<int:project_id>/generate_api_token/', views.generate_project_api_token, name='generate_project_api_token'),
+    path('api/project_status/', views.api_project_status, name='api_project_status'),
+    path('api/generate_project_api_token/<int:project_id>/', views.generate_project_api_token_api, name='generate_project_api_token_api'),
 ]
