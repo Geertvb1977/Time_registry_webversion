@@ -95,7 +95,7 @@ lint-black:
 
 lint-pylint:
 	$(UV) run pylint $(SRC_DIR) --max-line-length=99
-		--ignore=djangoproject/__init__.py
+		--ignore=F0010
 
 lint-flake8:
 	$(UV) run flake8 $(SRC_DIR) --max-line-length=99

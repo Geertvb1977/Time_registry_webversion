@@ -16,22 +16,20 @@ from pathlib import Path
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-
-# Quick-start development settings - unsuitable for production
-# See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
+# NOTE: logging is initialized further down with a resilient import.
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = "django-insecure-um20cc)@x6vw3n2-yfas=vxrqv00y3a^o(n8ah+a8bxa+d2muu"
+SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY")
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.environ.get("DEBUG", "False").lower() == "true"
 
-
+# Allow all hosts during development,
+# but in production this should be set to the actual domain(s)
 ALLOWED_HOSTS = os.environ.get("ALLOWED_HOSTS", "*").split(",")
 
 
 # Application definition
-
 INSTALLED_APPS = [
     "django.contrib.admin",
     "django.contrib.auth",
@@ -41,8 +39,7 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     # Local apps
     "time_reg_web",
-    # 'UserProfile',
-    # 'Company',
+
 ]
 
 MIDDLEWARE = [
@@ -64,12 +61,11 @@ ROOT_URLCONF = "djangoproject.urls"
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
-        # Voeg dit pad toe zodat de centrale templates map gevonden wordt
         "DIRS": [BASE_DIR / "djangoproject" / "templates"],
         "APP_DIRS": True,
         "OPTIONS": {
             "context_processors": [
-                "django.template.context_processors.debug",  # Goed om erbij te hebben
+                "django.template.context_processors.debug",
                 "django.template.context_processors.request",
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
@@ -93,7 +89,7 @@ DATABASES = {
         "PORT": "5432",
     }
 }
-SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY")
+
 
 # Password validation
 # https://docs.djangoproject.com/en/6.0/ref/settings/#auth-password-validators
@@ -132,8 +128,6 @@ USE_TZ = True
 # Ensure STATIC_URL is absolute so `{% static %}` produces root-relative URLs
 STATIC_URL = "/static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
-
-
 STATICFILES_DIRS = [
     BASE_DIR / "time_reg_web" / "static",
 ]
@@ -169,3 +163,30 @@ USE_X_FORWARDED_PORT = True
 # Application-level API key for automated actions (generate tokens programmatically)
 # Set this in your deployment environment as APP_API_KEY
 APP_API_KEY = os.environ.get("APP_API_KEY", "")
+
+# Initialize structured logging (Loguru)
+try:
+    # Preferred: absolute package import
+    from djangoproject.log_config import init_logging
+
+    init_logging(os.environ.get("LOG_LEVEL"))
+except Exception:
+    # Fallback: load module directly from file path (works if file wasn't copied into package)
+    try:
+        import importlib.util
+        from pathlib import Path
+
+        cfg_path = Path(__file__).resolve().parent / "log_config.py"
+        if cfg_path.exists():
+            spec = importlib.util.spec_from_file_location("djangoproject.log_config", str(cfg_path))
+            mod = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(mod)
+            if hasattr(mod, "init_logging"):
+                mod.init_logging(os.environ.get("LOG_LEVEL"))
+        else:
+            raise FileNotFoundError(str(cfg_path))
+    except Exception:
+        import logging
+
+        logging.exception("Failed to initialize Loguru logging")
+
