@@ -6,17 +6,17 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('time_reg_web', '0002_alter_customer_customer_id_and_more'),
+        ("time_reg_web", "0002_alter_customer_customer_id_and_more"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='project',
-            name='project_id',
+            model_name="project",
+            name="project_id",
             field=models.IntegerField(),
         ),
         migrations.AlterUniqueTogether(
-            name='project',
-            unique_together={('company', 'project_id')},
+            name="project",
+            unique_together={("company", "project_id")},
         ),
     ]

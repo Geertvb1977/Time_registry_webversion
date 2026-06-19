@@ -7,13 +7,19 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('time_reg_web', '0007_divisies_milstones_divisie_timeregistry_divisie_and_more'),
+        ("time_reg_web", "0007_divisies_milstones_divisie_timeregistry_divisie_and_more"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='todo',
-            name='milestone',
-            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='todos', to='time_reg_web.milstones'),
+            model_name="todo",
+            name="milestone",
+            field=models.ForeignKey(
+                blank=True,
+                null=True,
+                on_delete=django.db.models.deletion.SET_NULL,
+                related_name="todos",
+                to="time_reg_web.milstones",
+            ),
         ),
     ]

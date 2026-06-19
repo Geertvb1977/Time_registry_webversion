@@ -50,6 +50,7 @@ from .models import (
 
 logger = logging.getLogger(__name__)
 
+
 # 1. Het Dashboard (Hoofdpagina)
 class DashboardView(TenantObjectMixin, View):
     """View voor het dashboard (index) met projectoverzicht en interactieve to-do lijst."""
@@ -253,9 +254,7 @@ class ExportView(TenantObjectMixin, View):
         customers = Customer.objects.filter(company=company)
         projects = Project.objects.filter(company=company)
 
-        return render(
-            request, self.template_name, {"customers": customers, "projects": projects}
-        )
+        return render(request, self.template_name, {"customers": customers, "projects": projects})
 
     def post(self, request):
         company = request.user.profile.company
@@ -355,9 +354,7 @@ class RegisterUserView(View):
 
         # Basis validatie
         if not all([username, email, password, password_confirm]):
-            return render(
-                request, self.template_name, {"reg_error": "Vul alle velden in."}
-            )
+            return render(request, self.template_name, {"reg_error": "Vul alle velden in."})
 
         if password != password_confirm:
             return render(
@@ -376,9 +373,7 @@ class RegisterUserView(View):
         try:
             with transaction.atomic():
                 # 1. Maak User aan
-                user = User.objects.create_user(
-                    username=username, email=email, password=password
-                )
+                user = User.objects.create_user(username=username, email=email, password=password)
                 # 2. Maak UserProfile aan (zonder company)
                 UserProfile.objects.get_or_create(user=user)
 
@@ -388,9 +383,7 @@ class RegisterUserView(View):
             # 4. Stuur door naar de bedrijfsselectie (die zal redirecten naar create_company)
             return redirect("eventaflow:select_company")
         except Exception as e:
-            return render(
-                request, self.template_name, {"reg_error": f"Technisch probleem: {e}"}
-            )
+            return render(request, self.template_name, {"reg_error": f"Technisch probleem: {e}"})
 
 
 class CompanySelectionView(LoginRequiredMixin, ListView):
@@ -410,11 +403,11 @@ class CompanySelectionView(LoginRequiredMixin, ListView):
 
     def get_queryset(self):
         return self.request.user.companies.all()
-    
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        profile = getattr(self.request.user, 'profile', None)
-        context['active_company'] = getattr(profile, 'company', None) if profile else None
+        profile = getattr(self.request.user, "profile", None)
+        context["active_company"] = getattr(profile, "company", None) if profile else None
         return context
 
 
@@ -535,9 +528,7 @@ class CompanyDetailView(LoginRequiredMixin, View):
                             f"{user_to_add.username} is al lid van dit bedrijf.",
                         )
                     else:
-                        profile, created = UserProfile.objects.get_or_create(
-                            user=user_to_add
-                        )
+                        profile, created = UserProfile.objects.get_or_create(user=user_to_add)
                         profile.company = company
                         profile.is_company_admin = False
                         profile.save()
@@ -574,16 +565,10 @@ class CompanyDetailView(LoginRequiredMixin, View):
                         if Divisies.objects.filter(
                             company=company, divisie_name__iexact=divisie_name
                         ).exists():
-                            messages.warning(
-                                request, f"Divisie '{divisie_name}' bestaat al."
-                            )
+                            messages.warning(request, f"Divisie '{divisie_name}' bestaat al.")
                         else:
-                            Divisies.objects.create(
-                                divisie_name=divisie_name, company=company
-                            )
-                            messages.success(
-                                request, f"Divisie '{divisie_name}' is toegevoegd."
-                            )
+                            Divisies.objects.create(divisie_name=divisie_name, company=company)
+                            messages.success(request, f"Divisie '{divisie_name}' is toegevoegd.")
                 except Exception as e:
                     messages.error(request, f"Fout bij aanmaken divisie: {e}")
 
@@ -605,18 +590,20 @@ class CompanyDetailView(LoginRequiredMixin, View):
 
             if client_id and client_secret:
                 company.google_client_id = client_id
-                
+
                 # Sla client_secret alleen op als het geen gemaskeerde weergave is
                 if client_secret != "********":
                     company.google_client_secret = client_secret
-                
+
                 company.save()
                 messages.success(
-                    request, 
-                    "Google OAuth credentials succesvol opgeslagen! Klik nu op de groene knop om de autorisatie te starten."
+                    request,
+                    "Google OAuth credentials succesvol opgeslagen! Klik nu op de groene knop om de autorisatie te starten.",
                 )
             else:
-                messages.error(request, "Zowel het Client ID als het Client Secret zijn verplicht.")
+                messages.error(
+                    request, "Zowel het Client ID als het Client Secret zijn verplicht."
+                )
 
         # 7. Google Credentials en actieve Tokens volledig verwijderen (Ontkoppelen)
         elif "remove_google_credentials" in request.POST:
@@ -624,9 +611,12 @@ class CompanyDetailView(LoginRequiredMixin, View):
             company.google_client_secret = None
             company.google_oauth_token = None
             company.save()
-            messages.success(request, "Google Drive integratie en actieve tokens zijn succesvol verwijderd.")
+            messages.success(
+                request, "Google Drive integratie en actieve tokens zijn succesvol verwijderd."
+            )
 
         return render(request, self.template_name, self.get_context_data(company))
+
 
 # 6. Uitloggen
 class LoginView(RedirectView):
@@ -714,7 +704,7 @@ class TodoListView(LoginRequiredMixin, View):
         is_completed = request.GET.get("is_completed")
         if is_completed == "true":
             todos = todos.filter(is_completed=True)
-        
+
         elif is_completed == "false":
             todos = todos.filter(is_completed=False)
 
@@ -788,7 +778,7 @@ def toggle_todo(request, todo_id):
         messages.success(request, "Taak status bijgewerkt!")
 
     # Redirect back to the page the request came from
-    referer = request.META.get('HTTP_REFERER', reverse_lazy("eventaflow:dashboard"))
+    referer = request.META.get("HTTP_REFERER", reverse_lazy("eventaflow:dashboard"))
     return redirect(referer)
 
 
@@ -802,11 +792,13 @@ def google_docs_view(request):
     company = request.user.profile.company
     divisies = Divisies.objects.filter(company=company)
     docs = GoogleDocument.objects.filter(company=company)
-    
+
     iframe_url = None
-    
+
     # Controleer of de OAuth configuratie compleet is
-    is_configured = bool(company.google_client_id and company.google_client_secret and company.google_oauth_token)
+    is_configured = bool(
+        company.google_client_id and company.google_client_secret and company.google_oauth_token
+    )
 
     if is_configured:
         try:
@@ -819,122 +811,122 @@ def google_docs_view(request):
 
     if request.method == "POST":
         if not service:
-            messages.error(request, "Google integratie is nog niet geconfigureerd of geautoriseerd.")
-            return redirect('eventaflow:google_docs')
+            messages.error(
+                request, "Google integratie is nog niet geconfigureerd of geautoriseerd."
+            )
+            return redirect("eventaflow:google_docs")
 
         action = request.POST.get("action")
 
         # Activeer de synchronisatieknop (Sync van Drive)
         if action == "sync":
             synced_count = 0
-            
+
             # 1. Haal bestanden op uit de hoofdmap (root) van de gekoppelde Drive
             drive_files = service.list_files_from_drive(limit=50)
             for f in drive_files:
-                file_id = f.get('id')
-                name = f.get('name')
-                mime_type = f.get('mimeType')
-                
+                file_id = f.get("id")
+                name = f.get("name")
+                mime_type = f.get("mimeType")
+
                 # Filter uitsluitend Google Docs en Sheets
-                if mime_type == 'application/vnd.google-apps.document':
-                    file_type = 'document'
-                elif mime_type == 'application/vnd.google-apps.spreadsheet':
-                    file_type = 'spreadsheet'
+                if mime_type == "application/vnd.google-apps.document":
+                    file_type = "document"
+                elif mime_type == "application/vnd.google-apps.spreadsheet":
+                    file_type = "spreadsheet"
                 else:
                     continue  # Sla overige bestandstypen over
-                
+
                 # Importeer het bestand in de Eventaflow-database als het nog niet bestaat
                 obj, created = GoogleDocument.objects.get_or_create(
                     google_file_id=file_id,
-                    defaults={
-                        'company': company,
-                        'title': name,
-                        'file_type': file_type
-                    }
+                    defaults={"company": company, "title": name, "file_type": file_type},
                 )
                 if created:
                     synced_count += 1
-            
+
             # 2. Haal ook alle bestanden op die binnen bestaande divisie-mappen staan
             for divisie in divisies:
                 if divisie.google_drive_folder_id:
-                    folder_files = service.list_files_from_drive(limit=50, folder_id=divisie.google_drive_folder_id)
+                    folder_files = service.list_files_from_drive(
+                        limit=50, folder_id=divisie.google_drive_folder_id
+                    )
                     for f in folder_files:
-                        file_id = f.get('id')
-                        name = f.get('name')
-                        mime_type = f.get('mimeType')
-                        
-                        if mime_type == 'application/vnd.google-apps.document':
-                            file_type = 'document'
-                        elif mime_type == 'application/vnd.google-apps.spreadsheet':
-                            file_type = 'spreadsheet'
+                        file_id = f.get("id")
+                        name = f.get("name")
+                        mime_type = f.get("mimeType")
+
+                        if mime_type == "application/vnd.google-apps.document":
+                            file_type = "document"
+                        elif mime_type == "application/vnd.google-apps.spreadsheet":
+                            file_type = "spreadsheet"
                         else:
                             continue
-                            
+
                         obj, created = GoogleDocument.objects.get_or_create(
                             google_file_id=file_id,
-                            defaults={
-                                'company': company,
-                                'title': name,
-                                'file_type': file_type
-                            }
+                            defaults={"company": company, "title": name, "file_type": file_type},
                         )
                         if created:
                             synced_count += 1
-                            
-            messages.success(request, f"Synchronisatie voltooid! {synced_count} nieuwe documenten van Google Drive geïmporteerd.")
-            return redirect('eventaflow:google_docs')
+
+            messages.success(
+                request,
+                f"Synchronisatie voltooid! {synced_count} nieuwe documenten van Google Drive geïmporteerd.",
+            )
+            return redirect("eventaflow:google_docs")
 
         # 1. Handmatig aanmaken en delen van een Divisie-map
         elif action == "create_division_folder":
             divisie_pk = request.POST.get("divisie_pk")
             divisie = get_object_or_404(Divisies, pk=divisie_pk, company=company)
-            
+
             # Map wordt aangemaakt onder het account van de Admin (nooit meer quota-fouten!)
             folder_id = service.create_folder(name=divisie.divisie_name, share_with_members=True)
             if folder_id:
                 divisie.google_drive_folder_id = folder_id
                 divisie.save()
-                messages.success(request, f"Google Drive map met succes aangemaakt en gedeeld voor '{divisie.divisie_name}'.")
+                messages.success(
+                    request,
+                    f"Google Drive map met succes aangemaakt en gedeeld voor '{divisie.divisie_name}'.",
+                )
             else:
                 messages.error(request, "Kan map niet aanmaken op Google Drive.")
-            return redirect('eventaflow:google_docs')
+            return redirect("eventaflow:google_docs")
 
         # 2. Document aanmaken binnen divisie-map (indien gekozen)
         elif action == "create":
             title = request.POST.get("title")
             file_type = request.POST.get("file_type")
             divisie_pk = request.POST.get("divisie_pk")
-            
+
             parent_folder_id = None
             if divisie_pk:
                 divisie = get_object_or_404(Divisies, pk=divisie_pk, company=company)
                 parent_folder_id = divisie.google_drive_folder_id
 
             google_file_id = service.create_empty_google_doc(
-                title=title, 
-                file_type=file_type, 
-                parent_folder_id=parent_folder_id
+                title=title, file_type=file_type, parent_folder_id=parent_folder_id
             )
-            
+
             if google_file_id:
                 GoogleDocument.objects.create(
                     company=company,
                     title=title,
                     google_file_id=google_file_id,
-                    file_type=file_type
+                    file_type=file_type,
                 )
                 messages.success(request, f"Document '{title}' met succes aangemaakt.")
             else:
                 messages.error(request, "Kan document niet aanmaken op Google Drive.")
-            return redirect('eventaflow:google_docs')
+            return redirect("eventaflow:google_docs")
 
         # 3. Uploaden & converteren binnen divisie-map
         elif action == "upload":
             uploaded_file = request.FILES.get("file")
             upload_title = request.POST.get("upload_title") or uploaded_file.name
             divisie_pk = request.POST.get("divisie_pk")
-            
+
             parent_folder_id = None
             if divisie_pk:
                 divisie = get_object_or_404(Divisies, pk=divisie_pk, company=company)
@@ -945,47 +937,49 @@ def google_docs_view(request):
                 title=upload_title,
                 original_mime_type=uploaded_file.content_type,
                 convert_to_google=True,
-                parent_folder_id=parent_folder_id
+                parent_folder_id=parent_folder_id,
             )
-            
+
             if google_file_id:
                 GoogleDocument.objects.create(
                     company=company,
                     title=upload_title,
                     google_file_id=google_file_id,
-                    file_type=file_type
+                    file_type=file_type,
                 )
-                messages.success(request, f"Bestand '{upload_title}' met succes geüpload en geconverteerd.")
+                messages.success(
+                    request, f"Bestand '{upload_title}' met succes geüpload en geconverteerd."
+                )
             else:
                 messages.error(request, "Kan bestand niet uploaden naar Google Drive.")
-            return redirect('eventaflow:google_docs')
+            return redirect("eventaflow:google_docs")
 
         # 4. Open document in iframe en deel met actieve browser user
         elif action == "open":
             doc_pk = request.POST.get("doc_pk")
             doc = get_object_or_404(GoogleDocument, pk=doc_pk, company=company)
-            
+
             # Geef de actuele ingelogde Django-gebruiker direct schrijfrechten
-            service.share_file_with_user(doc.google_file_id, request.user.email, role='writer')
-            
+            service.share_file_with_user(doc.google_file_id, request.user.email, role="writer")
+
             # Genereer iframe-url
-            iframe_url = service.get_iframe_url(doc.google_file_id, doc.file_type, mode='edit')
+            iframe_url = service.get_iframe_url(doc.google_file_id, doc.file_type, mode="edit")
 
         # 5. Handmatig document delen met alle Company Members
         elif action == "share":
             doc_pk = request.POST.get("doc_pk")
             doc = get_object_or_404(GoogleDocument, pk=doc_pk, company=company)
-            
-            service.share_folder_with_company_members(doc.google_file_id, role='writer')
+
+            service.share_folder_with_company_members(doc.google_file_id, role="writer")
             messages.success(request, f"Document '{doc.title}' gedeeld met alle groepsleden.")
-            return redirect('eventaflow:google_docs')
+            return redirect("eventaflow:google_docs")
 
     context = {
-        'divisies': divisies,
-        'docs': docs,
-        'iframe_url': iframe_url,
-        'is_configured': is_configured,
-        'is_admin': request.user.profile.is_company_admin or request.user.is_superuser,
+        "divisies": divisies,
+        "docs": docs,
+        "iframe_url": iframe_url,
+        "is_configured": is_configured,
+        "is_admin": request.user.profile.is_company_admin or request.user.is_superuser,
     }
     return render(request, "google_docs.html", context)
 
@@ -1004,16 +998,18 @@ class MilestonesView(LoginRequiredMixin, View):
         divisies = Divisies.objects.filter(company=company)
 
         # Filtering logica voor de linkerlijst
-        milestones = Milstones.objects.filter(company=company).select_related(
-            "project", "divisie"
-        ).annotate(
-            total_todos=Count('todos'),
-            completed_todos=Sum(
-                Case(
-                    When(todos__is_completed=True, then=Value(1)),
-                    default=Value(0),
-                    output_field=IntegerField()
-                )
+        milestones = (
+            Milstones.objects.filter(company=company)
+            .select_related("project", "divisie")
+            .annotate(
+                total_todos=Count("todos"),
+                completed_todos=Sum(
+                    Case(
+                        When(todos__is_completed=True, then=Value(1)),
+                        default=Value(0),
+                        output_field=IntegerField(),
+                    )
+                ),
             )
         )
 
@@ -1091,14 +1087,14 @@ class MilestonesView(LoginRequiredMixin, View):
             Milstones.objects.filter(company=company)
             .select_related("project", "divisie")
             .annotate(
-                total_todos=Count('todos'),
+                total_todos=Count("todos"),
                 completed_todos=Sum(
                     Case(
                         When(todos__is_completed=True, then=Value(1)),
                         default=Value(0),
-                        output_field=IntegerField()
+                        output_field=IntegerField(),
                     )
-                )
+                ),
             )
             .order_by("-created_at")
         )
@@ -1131,32 +1127,29 @@ def create_doc_view(request):
     """
     View om direct een nieuw, leeg Google Doc aan te maken voor het actieve bedrijf.
     """
-    active_company_id = request.session.get('active_company_id')
+    active_company_id = request.session.get("active_company_id")
     if not active_company_id:
-        return redirect('company_select')
+        return redirect("company_select")
 
     company = get_object_or_404(Company, id=active_company_id)
 
-    if request.method == 'POST':
-        title = request.POST.get('title', 'Naamloos Document')
-        
+    if request.method == "POST":
+        title = request.POST.get("title", "Naamloos Document")
+
         # Initialiseer de service voor dit specifieke bedrijf
         service = GoogleDriveService(company)
-        
+
         # Maak het lege document aan op Google Drive
         google_file_id = service.create_empty_google_doc(title)
-        
+
         if google_file_id:
             # Sla de referentie op in onze lokale Django database
             doc = GoogleDocument.objects.create(
-                company=company,
-                title=title,
-                google_file_id=google_file_id,
-                file_type='document'
+                company=company, title=title, google_file_id=google_file_id, file_type="document"
             )
-            return redirect('view_document', doc_id=doc.id)
-            
-    return render(request, 'docs/create_document.html')
+            return redirect("view_document", doc_id=doc.id)
+
+    return render(request, "docs/create_document.html")
 
 
 @login_required
@@ -1165,41 +1158,38 @@ def upload_file_view(request):
     View die een lokaal bestand (Word, Excel, PDF) accepteert,
     het uploadt naar Google Drive, en optioneel converteert naar een Google Doc/Sheet.
     """
-    active_company_id = request.session.get('active_company_id')
+    active_company_id = request.session.get("active_company_id")
     if not active_company_id:
-        return redirect('company_select')
+        return redirect("company_select")
 
     company = get_object_or_404(Company, id=active_company_id)
 
-    if request.method == 'POST' and request.FILES.get('file'):
-        uploaded_file = request.FILES['file']
-        title = request.POST.get('title', uploaded_file.name)
-        
+    if request.method == "POST" and request.FILES.get("file"):
+        uploaded_file = request.FILES["file"]
+        title = request.POST.get("title", uploaded_file.name)
+
         # Wil de gebruiker automatische conversie naar Google Docs/Sheets?
         # (Dit vinken we standaard aan voor Word en Excel)
-        convert = request.POST.get('convert_to_google', 'on') == 'on'
-        
+        convert = request.POST.get("convert_to_google", "on") == "on"
+
         service = GoogleDriveService(company)
-        
+
         # Upload en converteer via onze service
         google_file_id, file_type = service.upload_and_convert_file(
             django_file=uploaded_file,
             title=title,
             original_mime_type=uploaded_file.content_type,
-            convert_to_google=convert
+            convert_to_google=convert,
         )
-        
+
         if google_file_id:
             # Sla op in de lokale database
             doc = GoogleDocument.objects.create(
-                company=company,
-                title=title,
-                google_file_id=google_file_id,
-                file_type=file_type
+                company=company, title=title, google_file_id=google_file_id, file_type=file_type
             )
-            return redirect('view_document', doc_id=doc.id)
+            return redirect("view_document", doc_id=doc.id)
 
-    return render(request, 'docs/upload_document.html')
+    return render(request, "docs/upload_document.html")
 
 
 @login_required
@@ -1209,37 +1199,39 @@ def view_document(request, doc_id):
     Als het een bewerkbaar document/sheet is, embedden we het in een Iframe.
     Als het een PDF is, gebruiken we een PDF viewer of een Drive preview link.
     """
-    active_company_id = request.session.get('active_company_id')
+    active_company_id = request.session.get("active_company_id")
     company = get_object_or_404(Company, id=active_company_id)
     document = get_object_or_404(GoogleDocument, id=doc_id, company=company)
-    
+
     # Haal het Google-emailadres van het gebruikersprofiel op
     user_google_email = request.user.profile.google_email
 
     service = GoogleDriveService(company)
-    
+
     # Deel het bestand met de gebruiker zodat de browser-sessie toegang heeft
     # Voor bewerkbare bestanden geven we 'writer', voor PDFs of overig geven we 'reader'
-    role = 'writer' if document.file_type in ['document', 'spreadsheet'] else 'reader'
+    role = "writer" if document.file_type in ["document", "spreadsheet"] else "reader"
     service.share_file_with_user(document.google_file_id, user_google_email, role=role)
 
     # Bepaal de juiste Iframe URL op basis van het type bestand
-    if document.file_type == 'document':
+    if document.file_type == "document":
         embed_url = f"https://docs.google.com/document/d/{document.google_file_id}/edit?usp=embed_javascript"
-    elif document.file_type == 'spreadsheet':
+    elif document.file_type == "spreadsheet":
         embed_url = f"https://docs.google.com/spreadsheets/d/{document.google_file_id}/edit?usp=drivesdk&rm=minimal"
     else:
         # Voor PDFs en overige binaire bestanden gebruiken we de universele Google Drive previewer
         embed_url = f"https://drive.google.com/file/d/{document.google_file_id}/preview"
 
     context = {
-        'document': document,
-        'embed_url': embed_url,
+        "document": document,
+        "embed_url": embed_url,
     }
-    return render(request, 'docs/view_document.html', context)
+    return render(request, "docs/view_document.html", context)
 
 
 login_required
+
+
 def google_settings_view(request):
     """
     Instellingenpagina (gebaseerd op google_settings.html) waar gebruikers met de juiste
@@ -1249,36 +1241,38 @@ def google_settings_view(request):
     if not company:
         messages.error(request, "Je bent niet gekoppeld aan een bedrijf.")
         return redirect("eventaflow:dashboard")
-    
-    # Beveiliging: Iedereen binnen het bedrijf mag de status zien, 
+
+    # Beveiliging: Iedereen binnen het bedrijf mag de status zien,
     # maar alleen admins/superusers mogen POST-wijzigingen doorvoeren.
     is_admin = request.user.profile.is_company_admin or request.user.is_superuser
 
     if request.method == "POST":
         if not is_admin:
             messages.error(request, "Je hebt geen rechten om deze instellingen aan te passen.")
-            return redirect('eventaflow:google_settings')
+            return redirect("eventaflow:google_settings")
 
         client_id = request.POST.get("client_id", "").strip()
         client_secret = request.POST.get("client_secret", "").strip()
-        
+
         if client_id and client_secret:
             company.google_client_id = client_id
-            
+
             # Voorkom dat we de gemaskeerde '********' weergave overschrijven in de database
             if client_secret != "********":
                 company.google_client_secret = client_secret
-                
+
             company.save()
-            messages.success(request, "Google OAuth credentials succesvol opgeslagen. Start nu de autorisatie.")
+            messages.success(
+                request, "Google OAuth credentials succesvol opgeslagen. Start nu de autorisatie."
+            )
         else:
             messages.error(request, "Vul zowel het Client ID als het Client Secret in.")
-        return redirect('eventaflow:google_settings')
+        return redirect("eventaflow:google_settings")
 
     context = {
-        'company': company,
-        'has_credentials': bool(company.google_client_id and company.google_client_secret),
-        'is_authorized': bool(company.google_oauth_token),
+        "company": company,
+        "has_credentials": bool(company.google_client_id and company.google_client_secret),
+        "is_authorized": bool(company.google_oauth_token),
     }
     return render(request, "dashboard/google_settings.html", context)
 
@@ -1296,27 +1290,29 @@ def google_authorize_start(request):
     client_id = company.google_client_id
     if not client_id:
         messages.error(request, "Sla eerst je Client ID en Client Secret op.")
-        return redirect('eventaflow:google_settings')
+        return redirect("eventaflow:google_settings")
 
     # Genereer een cryptografisch veilige state en sla deze op in de sessie van de gebruiker
     state = secrets.token_urlsafe(32)
-    request.session['oauth_state'] = state
+    request.session["oauth_state"] = state
 
     # Bepaal de dynamische callback URI op basis van de huidige host
-    redirect_uri = request.build_absolute_uri(reverse('eventaflow:google_callback'))
-    
+    redirect_uri = request.build_absolute_uri(reverse("eventaflow:google_callback"))
+
     # Configureer de parameters voor Google OAuth2
     params = {
-        'client_id': client_id,
-        'redirect_uri': redirect_uri,
-        'response_type': 'code',
-        'scope': 'https://www.googleapis.com/auth/drive https://www.googleapis.com/auth/documents',
-        'access_type': 'offline',  # Essentieel om een 'refresh_token' te ontvangen!
-        'prompt': 'consent',       # Forceert Google om het toestemmingsscherm te tonen
-        'state': state,            # CSRF-beveiliging
+        "client_id": client_id,
+        "redirect_uri": redirect_uri,
+        "response_type": "code",
+        "scope": "https://www.googleapis.com/auth/drive https://www.googleapis.com/auth/documents",
+        "access_type": "offline",  # Essentieel om een 'refresh_token' te ontvangen!
+        "prompt": "consent",  # Forceert Google om het toestemmingsscherm te tonen
+        "state": state,  # CSRF-beveiliging
     }
-    
-    authorization_url = f"https://accounts.google.com/o/oauth2/v2/auth?{urllib.parse.urlencode(params)}"
+
+    authorization_url = (
+        f"https://accounts.google.com/o/oauth2/v2/auth?{urllib.parse.urlencode(params)}"
+    )
     return HttpResponseRedirect(authorization_url)
 
 
@@ -1326,29 +1322,31 @@ def google_authorize_callback(request):
     Callback view waar we de 'state' verifiëren en de autorisatiecode inwisselen voor tokens.
     """
     company = request.user.profile.company
-    code = request.GET.get('code')
-    returned_state = request.GET.get('state')
-    session_state = request.session.pop('oauth_state', None)
+    code = request.GET.get("code")
+    returned_state = request.GET.get("state")
+    session_state = request.session.pop("oauth_state", None)
 
     # 1. CSRF controle via de State parameter
     if not session_state or returned_state != session_state:
-        messages.error(request, "Veiligheidscontrole mislukt (ongeldige OAuth state). Probeer het opnieuw.")
-        return redirect('eventaflow:google_settings')
-    
+        messages.error(
+            request, "Veiligheidscontrole mislukt (ongeldige OAuth state). Probeer het opnieuw."
+        )
+        return redirect("eventaflow:google_settings")
+
     if not code:
         messages.error(request, "Geen autorisatiecode ontvangen van Google.")
-        return redirect('eventaflow:google_settings')
+        return redirect("eventaflow:google_settings")
 
-    redirect_uri = request.build_absolute_uri(reverse('eventaflow:google_callback'))
+    redirect_uri = request.build_absolute_uri(reverse("eventaflow:google_callback"))
 
     # Wissel de code uit voor tokens
     token_url = "https://oauth2.googleapis.com/token"
     payload = {
-        'code': code,
-        'client_id': company.google_client_id,
-        'client_secret': company.google_client_secret,
-        'redirect_uri': redirect_uri,
-        'grant_type': 'authorization_code',
+        "code": code,
+        "client_id": company.google_client_id,
+        "client_secret": company.google_client_secret,
+        "redirect_uri": redirect_uri,
+        "grant_type": "authorization_code",
     }
 
     try:
@@ -1360,15 +1358,15 @@ def google_authorize_callback(request):
             company.google_oauth_token = response_data
             company.save()
             messages.success(request, "Google Account met succes gekoppeld aan de app!")
-            return redirect('eventaflow:google_docs')
+            return redirect("eventaflow:google_docs")
         else:
-            error_desc = response_data.get('error_description', 'Onbekende fout')
+            error_desc = response_data.get("error_description", "Onbekende fout")
             messages.error(request, f"Fout bij het ophalen van tokens: {error_desc}")
-            return redirect('eventaflow:google_settings')
+            return redirect("eventaflow:google_settings")
 
     except Exception as e:
         messages.error(request, f"Fout tijdens de netwerkverbinding met Google: {e}")
-        return redirect('eventaflow:dashboard/google_settings')
+        return redirect("eventaflow:dashboard/google_settings")
 
 
 @login_required
@@ -1386,13 +1384,13 @@ def generate_project_api_token(request, project_id):
         return HttpResponseForbidden("Not allowed")
 
     project = get_object_or_404(Project, id=project_id, company=company)
-    if request.method != 'POST':
-        return HttpResponseBadRequest('POST required')
+    if request.method != "POST":
+        return HttpResponseBadRequest("POST required")
 
-    recipient = request.POST.get('email')
-    single_use = request.POST.get('single_use', 'true').lower() in ('1','true','yes')
+    recipient = request.POST.get("email")
+    single_use = request.POST.get("single_use", "true").lower() in ("1", "true", "yes")
     if not recipient:
-        return HttpResponseBadRequest('email required')
+        return HttpResponseBadRequest("email required")
 
     key = APIToken.generate_key()
     token = APIToken.objects.create(
@@ -1404,29 +1402,34 @@ def generate_project_api_token(request, project_id):
     )
 
     # Build a one-click URL that contains the token as a query param
-    url = request.build_absolute_uri(reverse('eventaflow:api_project_status')) + f"?token={token.key}&project_id={project.id}"
+    url = (
+        request.build_absolute_uri(reverse("eventaflow:api_project_status"))
+        + f"?token={token.key}&project_id={project.id}"
+    )
 
     subject = f"API toegang voor project {project.project_name}"
     # Render plaintext and HTML email with a button
-    plaintext = render_to_string('emails/api_token_email.txt', {'url': url, 'project': project})
-    html_content = render_to_string('emails/api_token_email.html', {'url': url, 'project': project})
+    plaintext = render_to_string("emails/api_token_email.txt", {"url": url, "project": project})
+    html_content = render_to_string(
+        "emails/api_token_email.html", {"url": url, "project": project}
+    )
     msg = EmailMultiAlternatives(subject, plaintext, None, [recipient])
     msg.attach_alternative(html_content, "text/html")
     try:
         msg.send(fail_silently=True)
     except Exception:
-        logger.exception('Failed to send API token email')
+        logger.exception("Failed to send API token email")
 
-    return JsonResponse({'status': 'ok', 'token': token.key})
+    return JsonResponse({"status": "ok", "token": token.key})
 
 
 def _get_token_from_request(request):
     # Try header Authorization: Token <key>
-    auth = request.META.get('HTTP_AUTHORIZATION', '')
-    if auth.startswith('Token '):
-        return auth.split(' ',1)[1].strip()
+    auth = request.META.get("HTTP_AUTHORIZATION", "")
+    if auth.startswith("Token "):
+        return auth.split(" ", 1)[1].strip()
     # fallback to query param
-    return request.GET.get('token') or request.POST.get('token')
+    return request.GET.get("token") or request.POST.get("token")
 
 
 def api_project_status(request):
@@ -1435,76 +1438,76 @@ def api_project_status(request):
     Accepts token via `Authorization: Token <key>` header or `?token=` query param.
     """
     token_key = _get_token_from_request(request)
-    project_id = request.GET.get('project_id') or request.POST.get('project_id')
+    project_id = request.GET.get("project_id") or request.POST.get("project_id")
     if not token_key or not project_id:
-        return HttpResponseForbidden('token and project_id required')
+        return HttpResponseForbidden("token and project_id required")
 
     try:
         token = APIToken.objects.get(key=token_key, is_active=True)
     except APIToken.DoesNotExist:
-        return HttpResponseForbidden('invalid token')
+        return HttpResponseForbidden("invalid token")
 
     # check expiry
     if token.expires_at and timezone.now() > token.expires_at:
-        return HttpResponseForbidden('token expired')
+        return HttpResponseForbidden("token expired")
 
     if str(token.project.id) != str(project_id):
-        return HttpResponseForbidden('project mismatch')
+        return HttpResponseForbidden("project mismatch")
 
     project = token.project
 
     # Build a simple status payload
-    time_entries = TimeRegistry.objects.filter(project=project).order_by('-start_time')[:20]
+    time_entries = TimeRegistry.objects.filter(project=project).order_by("-start_time")[:20]
     entries = [
         {
-            'user': t.user.username,
-            'start_time': t.start_time.isoformat(),
-            'end_time': t.end_time.isoformat() if t.end_time else None,
-            'description': t.description,
+            "user": t.user.username,
+            "start_time": t.start_time.isoformat(),
+            "end_time": t.end_time.isoformat() if t.end_time else None,
+            "description": t.description,
         }
         for t in time_entries
     ]
 
     payload = {
-        'project': {
-            'id': project.id,
-            'name': project.project_name,
-            'description': project.project_description,
-            'is_active': project.is_active,
+        "project": {
+            "id": project.id,
+            "name": project.project_name,
+            "description": project.project_description,
+            "is_active": project.is_active,
         },
-        'recent_time_entries': entries,
+        "recent_time_entries": entries,
     }
 
     # record usage
     try:
-        remote_ip = request.META.get('HTTP_X_FORWARDED_FOR', request.META.get('REMOTE_ADDR'))
-        user_agent = request.META.get('HTTP_USER_AGENT', '')
+        remote_ip = request.META.get("HTTP_X_FORWARDED_FOR", request.META.get("REMOTE_ADDR"))
+        user_agent = request.META.get("HTTP_USER_AGENT", "")
         APITokenUsage.objects.create(token=token, remote_ip=remote_ip, user_agent=user_agent)
     except Exception:
-        logger.exception('Failed to record token usage')
+        logger.exception("Failed to record token usage")
 
     # include todos and milestones for the project
-    todos_qs = Todo.objects.filter(project_id=project).order_by('-created_at')[:50]
-    milestones_qs = Milstones.objects.filter(project=project).order_by('-due_date')[:50]
+    todos_qs = Todo.objects.filter(project_id=project).order_by("-created_at")[:50]
+    milestones_qs = Milstones.objects.filter(project=project).order_by("-due_date")[:50]
 
-    payload['todos'] = [
+    payload["todos"] = [
         {
-            'id': t.id,
-            'title': t.title,
-            'description': t.description,
-            'is_completed': t.is_completed,
-            'due_date': t.due_date.isoformat() if t.due_date else None,
+            "id": t.id,
+            "title": t.title,
+            "description": t.description,
+            "is_completed": t.is_completed,
+            "due_date": t.due_date.isoformat() if t.due_date else None,
         }
         for t in todos_qs
     ]
 
-    payload['milestones'] = [
+    payload["milestones"] = [
         {
-            'id': m.id,
-            'title': m.title,
-            'description': m.description,
-            'is_completed': m.is_completed,
-            'due_date': m.due_date.isoformat() if m.due_date else None,
+            "id": m.id,
+            "title": m.title,
+            "description": m.description,
+            "is_completed": m.is_completed,
+            "due_date": m.due_date.isoformat() if m.due_date else None,
         }
         for m in milestones_qs
     ]
@@ -1513,7 +1516,6 @@ def api_project_status(request):
     token.mark_used()
 
     return JsonResponse(payload)
-
 
 
 @csrf_exempt
@@ -1526,19 +1528,21 @@ def generate_project_api_token_api(request, project_id):
     from django.conf import settings
 
     # Check API key
-    header_key = request.META.get('HTTP_X_APP_API_KEY')
-    api_key = header_key or request.GET.get('api_key') or request.POST.get('api_key')
-    if not api_key or api_key != getattr(settings, 'APP_API_KEY', ''):
-        return HttpResponseForbidden('invalid api key')
+    header_key = request.META.get("HTTP_X_APP_API_KEY")
+    api_key = header_key or request.GET.get("api_key") or request.POST.get("api_key")
+    if not api_key or api_key != getattr(settings, "APP_API_KEY", ""):
+        return HttpResponseForbidden("invalid api key")
 
     # Only POST allowed
-    if request.method != 'POST':
-        return HttpResponseBadRequest('POST required')
+    if request.method != "POST":
+        return HttpResponseBadRequest("POST required")
 
-    recipient = request.POST.get('email') or request.GET.get('email')
-    single_use = (request.POST.get('single_use') or request.GET.get('single_use') or 'true').lower() in ('1','true','yes')
+    recipient = request.POST.get("email") or request.GET.get("email")
+    single_use = (
+        request.POST.get("single_use") or request.GET.get("single_use") or "true"
+    ).lower() in ("1", "true", "yes")
     if not recipient:
-        return HttpResponseBadRequest('email required')
+        return HttpResponseBadRequest("email required")
 
     project = get_object_or_404(Project, id=project_id)
 
@@ -1551,18 +1555,23 @@ def generate_project_api_token_api(request, project_id):
         single_use=single_use,
     )
 
-    url = request.build_absolute_uri(reverse('eventaflow:api_project_status')) + f"?token={token.key}&project_id={project.id}"
+    url = (
+        request.build_absolute_uri(reverse("eventaflow:api_project_status"))
+        + f"?token={token.key}&project_id={project.id}"
+    )
     subject = f"API toegang voor project {project.project_name}"
-    plaintext = render_to_string('emails/api_token_email.txt', {'url': url, 'project': project})
-    html_content = render_to_string('emails/api_token_email.html', {'url': url, 'project': project})
+    plaintext = render_to_string("emails/api_token_email.txt", {"url": url, "project": project})
+    html_content = render_to_string(
+        "emails/api_token_email.html", {"url": url, "project": project}
+    )
     msg = EmailMultiAlternatives(subject, plaintext, None, [recipient])
     msg.attach_alternative(html_content, "text/html")
     try:
         msg.send(fail_silently=True)
     except Exception:
-        logger.exception('Failed to send API token email (api)')
+        logger.exception("Failed to send API token email (api)")
 
-    return JsonResponse({'status': 'ok', 'token': token.key})
+    return JsonResponse({"status": "ok", "token": token.key})
 
 
 class CompanyDetailView(LoginRequiredMixin, View):
@@ -1570,6 +1579,7 @@ class CompanyDetailView(LoginRequiredMixin, View):
     Class-Based View voor het beheren van de bedrijfsgegevens, medewerkers,
     divisies en de Google OAuth2 API-credentials.
     """
+
     template_name = "companies/company_detail.html"
 
     def get_context_data(self, company):
@@ -1621,14 +1631,18 @@ class CompanyDetailView(LoginRequiredMixin, View):
                         user=user_to_add, company=company
                     ).first()
                     if existing_profile:
-                        messages.warning(request, f"{user_to_add.username} is al lid van dit bedrijf.")
+                        messages.warning(
+                            request, f"{user_to_add.username} is al lid van dit bedrijf."
+                        )
                     else:
                         profile, created = UserProfile.objects.get_or_create(user=user_to_add)
                         profile.company = company
                         profile.is_company_admin = False
                         profile.save()
                         company.members.add(user_to_add)
-                        messages.success(request, f"{user_to_add.username} is toegevoegd aan het bedrijf.")
+                        messages.success(
+                            request, f"{user_to_add.username} is toegevoegd aan het bedrijf."
+                        )
                 except User.DoesNotExist:
                     messages.error(request, f"Geen gebruiker gevonden met e-mailadres '{email}'.")
 
@@ -1651,7 +1665,9 @@ class CompanyDetailView(LoginRequiredMixin, View):
             else:
                 try:
                     with transaction.atomic():
-                        if Divisies.objects.filter(company=company, divisie_name__iexact=divisie_name).exists():
+                        if Divisies.objects.filter(
+                            company=company, divisie_name__iexact=divisie_name
+                        ).exists():
                             messages.warning(request, f"Divisie '{divisie_name}' bestaat al.")
                         else:
                             Divisies.objects.create(divisie_name=divisie_name, company=company)
@@ -1680,9 +1696,13 @@ class CompanyDetailView(LoginRequiredMixin, View):
                 if client_secret != "********":
                     company.google_client_secret = client_secret
                 company.save()
-                messages.success(request, "Credentials opgeslagen! Klik nu op de groene koppelknop.")
+                messages.success(
+                    request, "Credentials opgeslagen! Klik nu op de groene koppelknop."
+                )
             else:
-                messages.error(request, "Zowel het Client ID als het Client Secret zijn verplicht.")
+                messages.error(
+                    request, "Zowel het Client ID als het Client Secret zijn verplicht."
+                )
 
         # 7. Google Credentials verwijderen
         elif "remove_google_credentials" in request.POST:
@@ -1704,9 +1724,11 @@ def google_docs_view(request):
     company = request.user.profile.company
     divisies = Divisies.objects.filter(company=company)
     docs = GoogleDocument.objects.filter(company=company)
-    
+
     iframe_url = None
-    is_configured = bool(company.google_client_id and company.google_client_secret and company.google_oauth_token)
+    is_configured = bool(
+        company.google_client_id and company.google_client_secret and company.google_oauth_token
+    )
 
     service = None
     if is_configured:
@@ -1719,9 +1741,9 @@ def google_docs_view(request):
             company.google_oauth_token = None
             company.save()
             messages.error(
-                request, 
+                request,
                 "De Google integratie is niet langer geautoriseerd (mogelijks ingetrokken). "
-                "Gelieve opnieuw te koppelen in de instellingen."
+                "Gelieve opnieuw te koppelen in de instellingen.",
             )
             is_configured = False
 
@@ -1737,105 +1759,115 @@ def google_docs_view(request):
             if divisie.google_drive_folder_id:
                 try:
                     # Haal bestanden op specifiek binnen deze divisiemap
-                    folder_files = service.list_files_from_drive(limit=100, folder_id=divisie.google_drive_folder_id)
-                    folder_file_ids = {f.get('id') for f in folder_files}
+                    folder_files = service.list_files_from_drive(
+                        limit=100, folder_id=divisie.google_drive_folder_id
+                    )
+                    folder_file_ids = {f.get("id") for f in folder_files}
                     for d in docs:
                         if d.google_file_id in folder_file_ids:
                             d.temp_divisie_id = str(divisie.pk)
                             d.temp_divisie_name = divisie.divisie_name
                 except Exception as e:
-                    logger.warning(f"Kon mappen van divisie '{divisie.divisie_name}' niet uitlezen: {e}")
+                    logger.warning(
+                        f"Kon mappen van divisie '{divisie.divisie_name}' niet uitlezen: {e}"
+                    )
 
     if request.method == "POST":
         if not service:
             messages.error(request, "Google integratie is momenteel niet geautoriseerd.")
-            return redirect('eventaflow:google_docs')
+            return redirect("eventaflow:google_docs")
 
         action = request.POST.get("action")
 
         # Synchroniseer bestanden vanuit de Google Drive (Hoofdmap + Divisiemappen)
         if action == "sync":
             synced_count = 0
-            
+
             # CORRECTIE 1: Haal ENKEL bestanden op die DIRECT in de hoofdmap (root) staan (voorkomt dupliceren in mappen)
             try:
-                drive_files = service.list_files_from_drive(limit=50, folder_id='root')
+                drive_files = service.list_files_from_drive(limit=50, folder_id="root")
                 for f in drive_files:
-                    file_id = f.get('id')
-                    name = f.get('name')
-                    mime_type = f.get('mimeType')
-                    
-                    if mime_type == 'application/vnd.google-apps.document':
-                        file_type = 'document'
-                    elif mime_type == 'application/vnd.google-apps.spreadsheet':
-                        file_type = 'spreadsheet'
+                    file_id = f.get("id")
+                    name = f.get("name")
+                    mime_type = f.get("mimeType")
+
+                    if mime_type == "application/vnd.google-apps.document":
+                        file_type = "document"
+                    elif mime_type == "application/vnd.google-apps.spreadsheet":
+                        file_type = "spreadsheet"
                     else:
                         continue
-                    
+
                     obj, created = GoogleDocument.objects.get_or_create(
                         google_file_id=file_id,
-                        defaults={
-                            'company': company,
-                            'title': name,
-                            'file_type': file_type
-                        }
+                        defaults={"company": company, "title": name, "file_type": file_type},
                     )
                     if created:
                         synced_count += 1
             except Exception as e:
                 logger.error(f"Fout bij synchroniseren hoofdmap: {e}")
-            
+
             # 2. Haal alle bestanden op die binnen bestaande divisie-mappen staan
             for divisie in divisies:
                 if divisie.google_drive_folder_id:
                     try:
-                        folder_files = service.list_files_from_drive(limit=50, folder_id=divisie.google_drive_folder_id)
+                        folder_files = service.list_files_from_drive(
+                            limit=50, folder_id=divisie.google_drive_folder_id
+                        )
                         for f in folder_files:
-                            file_id = f.get('id')
-                            name = f.get('name')
-                            mime_type = f.get('mimeType')
-                            
-                            if mime_type == 'application/vnd.google-apps.document':
-                                file_type = 'document'
-                            elif mime_type == 'application/vnd.google-apps.spreadsheet':
-                                file_type = 'spreadsheet'
+                            file_id = f.get("id")
+                            name = f.get("name")
+                            mime_type = f.get("mimeType")
+
+                            if mime_type == "application/vnd.google-apps.document":
+                                file_type = "document"
+                            elif mime_type == "application/vnd.google-apps.spreadsheet":
+                                file_type = "spreadsheet"
                             else:
                                 continue
-                                
+
                             obj, created = GoogleDocument.objects.get_or_create(
                                 google_file_id=file_id,
                                 defaults={
-                                    'company': company,
-                                    'title': name,
-                                    'file_type': file_type
-                                }
+                                    "company": company,
+                                    "title": name,
+                                    "file_type": file_type,
+                                },
                             )
                             if created:
                                 synced_count += 1
                     except Exception as e:
-                        logger.error(f"Fout bij synchroniseren divisie-map '{divisie.divisie_name}': {e}")
-                            
-            messages.success(request, f"Synchronisatie voltooid! {synced_count} nieuwe documenten van Google Drive geïmporteerd.")
-            return redirect('eventaflow:google_docs')
+                        logger.error(
+                            f"Fout bij synchroniseren divisie-map '{divisie.divisie_name}': {e}"
+                        )
+
+            messages.success(
+                request,
+                f"Synchronisatie voltooid! {synced_count} nieuwe documenten van Google Drive geïmporteerd.",
+            )
+            return redirect("eventaflow:google_docs")
 
         elif action == "create_division_folder":
             divisie_pk = request.POST.get("divisie_pk")
             divisie = get_object_or_404(Divisies, pk=divisie_pk, company=company)
-            
+
             folder_id = service.create_folder(name=divisie.divisie_name, share_with_members=True)
             if folder_id:
                 divisie.google_drive_folder_id = folder_id
                 divisie.save()
-                messages.success(request, f"Google Drive map succesvol aangemaakt voor '{divisie.divisie_name}'.")
+                messages.success(
+                    request,
+                    f"Google Drive map succesvol aangemaakt voor '{divisie.divisie_name}'.",
+                )
             else:
                 messages.error(request, "Kan map niet aanmaken.")
-            return redirect('eventaflow:google_docs')
+            return redirect("eventaflow:google_docs")
 
         elif action == "create":
             title = request.POST.get("title")
             file_type = request.POST.get("file_type")
             divisie_pk = request.POST.get("divisie_pk")
-            
+
             parent_folder_id = None
             if divisie_pk:
                 divisie = get_object_or_404(Divisies, pk=divisie_pk, company=company)
@@ -1844,21 +1876,24 @@ def google_docs_view(request):
             google_file_id = service.create_empty_google_doc(
                 title=title, file_type=file_type, parent_folder_id=parent_folder_id
             )
-            
+
             if google_file_id:
                 GoogleDocument.objects.create(
-                    company=company, title=title, google_file_id=google_file_id, file_type=file_type
+                    company=company,
+                    title=title,
+                    google_file_id=google_file_id,
+                    file_type=file_type,
                 )
                 messages.success(request, f"Document '{title}' aangemaakt.")
             else:
                 messages.error(request, "Kan document niet aanmaken.")
-            return redirect('eventaflow:google_docs')
+            return redirect("eventaflow:google_docs")
 
         elif action == "upload":
             uploaded_file = request.FILES.get("file")
             upload_title = request.POST.get("upload_title") or uploaded_file.name
             divisie_pk = request.POST.get("divisie_pk")
-            
+
             parent_folder_id = None
             if divisie_pk:
                 divisie = get_object_or_404(Divisies, pk=divisie_pk, company=company)
@@ -1869,36 +1904,39 @@ def google_docs_view(request):
                 title=upload_title,
                 original_mime_type=uploaded_file.content_type,
                 convert_to_google=True,
-                parent_folder_id=parent_folder_id
+                parent_folder_id=parent_folder_id,
             )
-            
+
             if google_file_id:
                 GoogleDocument.objects.create(
-                    company=company, title=upload_title, google_file_id=google_file_id, file_type=file_type
+                    company=company,
+                    title=upload_title,
+                    google_file_id=google_file_id,
+                    file_type=file_type,
                 )
                 messages.success(request, "Bestand geüpload.")
             else:
                 messages.error(request, "Upload mislukt.")
-            return redirect('eventaflow:google_docs')
+            return redirect("eventaflow:google_docs")
 
         elif action == "open":
             doc_pk = request.POST.get("doc_pk")
             doc = get_object_or_404(GoogleDocument, pk=doc_pk, company=company)
-            service.share_file_with_user(doc.google_file_id, request.user.email, role='writer')
-            iframe_url = service.get_iframe_url(doc.google_file_id, doc.file_type, mode='edit')
-        '''
+            service.share_file_with_user(doc.google_file_id, request.user.email, role="writer")
+            iframe_url = service.get_iframe_url(doc.google_file_id, doc.file_type, mode="edit")
+        """
         elif action == "share":
             doc_pk = requests.request.POST.get("doc_pk")
             doc = get_object_or_404(GoogleDocument, pk=doc_pk, company=company)
             service.share_folder_with_company_members(doc.google_file_id, role='writer')
             messages.success(request, f"'{doc.title}' is gedeeld met alle collega's.")
             return redirect('eventaflow:google_docs')
-        '''
+        """
     context = {
-        'divisies': divisies,
-        'docs': docs,
-        'iframe_url': iframe_url,
-        'is_configured': is_configured,
-        'is_admin': request.user.profile.is_company_admin or request.user.is_superuser,
+        "divisies": divisies,
+        "docs": docs,
+        "iframe_url": iframe_url,
+        "is_configured": is_configured,
+        "is_admin": request.user.profile.is_company_admin or request.user.is_superuser,
     }
     return render(request, "dashboard/google_docs.html", context)

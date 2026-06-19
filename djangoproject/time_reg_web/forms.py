@@ -21,9 +21,7 @@ class RegistrationForm(forms.Form):
     username = forms.CharField(max_length=150, label="Gebruikersnaam")
     email = forms.EmailField(label="E-mailadres")
     password = forms.CharField(widget=forms.PasswordInput(), label="Wachtwoord")
-    password_confirm = forms.CharField(
-        widget=forms.PasswordInput(), label="Bevestig Wachtwoord"
-    )
+    password_confirm = forms.CharField(widget=forms.PasswordInput(), label="Bevestig Wachtwoord")
 
     def clean(self):
         cleaned_data = super().clean()

@@ -6,40 +6,61 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('time_reg_web', '0010_company_google_client_id_and_more'),
+        ("time_reg_web", "0010_company_google_client_id_and_more"),
     ]
 
     operations = [
         migrations.RemoveField(
-            model_name='company',
-            name='google_client_secret',
+            model_name="company",
+            name="google_client_secret",
         ),
         migrations.RemoveField(
-            model_name='company',
-            name='google_oauth_token',
+            model_name="company",
+            name="google_oauth_token",
         ),
         migrations.RemoveField(
-            model_name='company',
-            name='google_service_account_json',
+            model_name="company",
+            name="google_service_account_json",
         ),
         migrations.AddField(
-            model_name='company',
-            name='_google_client_secret_encrypted',
-            field=models.CharField(blank=True, db_column='google_client_secret', help_text='Google OAuth2 Client Secret (Versleuteld)', max_length=512, null=True),
+            model_name="company",
+            name="_google_client_secret_encrypted",
+            field=models.CharField(
+                blank=True,
+                db_column="google_client_secret",
+                help_text="Google OAuth2 Client Secret (Versleuteld)",
+                max_length=512,
+                null=True,
+            ),
         ),
         migrations.AddField(
-            model_name='company',
-            name='_google_oauth_token_encrypted',
-            field=models.TextField(blank=True, db_column='google_oauth_token', help_text='OAuth2 Tokens JSON-structuur (Versleuteld)', null=True),
+            model_name="company",
+            name="_google_oauth_token_encrypted",
+            field=models.TextField(
+                blank=True,
+                db_column="google_oauth_token",
+                help_text="OAuth2 Tokens JSON-structuur (Versleuteld)",
+                null=True,
+            ),
         ),
         migrations.AlterField(
-            model_name='company',
-            name='google_client_id',
-            field=models.CharField(blank=True, help_text='Google OAuth2 Client ID van het bedrijf', max_length=255, null=True),
+            model_name="company",
+            name="google_client_id",
+            field=models.CharField(
+                blank=True,
+                help_text="Google OAuth2 Client ID van het bedrijf",
+                max_length=255,
+                null=True,
+            ),
         ),
         migrations.AlterField(
-            model_name='divisies',
-            name='google_drive_folder_id',
-            field=models.CharField(blank=True, help_text='Google Drive map ID voor deze divisie', max_length=255, null=True),
+            model_name="divisies",
+            name="google_drive_folder_id",
+            field=models.CharField(
+                blank=True,
+                help_text="Google Drive map ID voor deze divisie",
+                max_length=255,
+                null=True,
+            ),
         ),
     ]

@@ -7,18 +7,30 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('time_reg_web', '0012_apitoken'),
+        ("time_reg_web", "0012_apitoken"),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='APITokenUsage',
+            name="APITokenUsage",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('used_at', models.DateTimeField(auto_now_add=True)),
-                ('remote_ip', models.CharField(blank=True, max_length=64, null=True)),
-                ('user_agent', models.CharField(blank=True, max_length=512, null=True)),
-                ('token', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='usages', to='time_reg_web.apitoken')),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True, primary_key=True, serialize=False, verbose_name="ID"
+                    ),
+                ),
+                ("used_at", models.DateTimeField(auto_now_add=True)),
+                ("remote_ip", models.CharField(blank=True, max_length=64, null=True)),
+                ("user_agent", models.CharField(blank=True, max_length=512, null=True)),
+                (
+                    "token",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="usages",
+                        to="time_reg_web.apitoken",
+                    ),
+                ),
             ],
         ),
     ]

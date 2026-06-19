@@ -6,18 +6,18 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('time_reg_web', '0004_alter_timeregistry_end_time'),
+        ("time_reg_web", "0004_alter_timeregistry_end_time"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='timeregistry',
-            name='end_time',
+            model_name="timeregistry",
+            name="end_time",
             field=models.DateTimeField(blank=True, null=True),
         ),
         migrations.AlterField(
-            model_name='timeregistry',
-            name='start_time',
+            model_name="timeregistry",
+            name="start_time",
             field=models.DateTimeField(),
         ),
     ]

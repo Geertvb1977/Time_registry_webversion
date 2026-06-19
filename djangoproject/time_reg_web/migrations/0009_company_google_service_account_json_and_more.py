@@ -7,34 +7,80 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('time_reg_web', '0008_todo_milestone'),
+        ("time_reg_web", "0008_todo_milestone"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='company',
-            name='google_service_account_json',
-            field=models.JSONField(blank=True, help_text='Google Service Account JSON voor Google Sheets API', null=True),
+            model_name="company",
+            name="google_service_account_json",
+            field=models.JSONField(
+                blank=True,
+                help_text="Google Service Account JSON voor Google Sheets API",
+                null=True,
+            ),
         ),
         migrations.AddField(
-            model_name='timeregistry',
-            name='Todo',
-            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='time_registrys', to='time_reg_web.todo'),
+            model_name="timeregistry",
+            name="Todo",
+            field=models.ForeignKey(
+                blank=True,
+                null=True,
+                on_delete=django.db.models.deletion.SET_NULL,
+                related_name="time_registrys",
+                to="time_reg_web.todo",
+            ),
         ),
         migrations.CreateModel(
-            name='GoogleDocument',
+            name="GoogleDocument",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('title', models.CharField(max_length=255)),
-                ('google_file_id', models.CharField(help_text='De unieke ID van het bestand op Google Drive', max_length=255, unique=True)),
-                ('file_type', models.CharField(choices=[('document', 'Google Doc (Bewerkbaar)'), ('spreadsheet', 'Google Sheet (Bewerkbaar)'), ('pdf', 'PDF (Alleen lezen)'), ('binary', 'Overig bestand (Enkel downloaden)')], default='document', max_length=20)),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('company', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='documents', to='time_reg_web.company')),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True, primary_key=True, serialize=False, verbose_name="ID"
+                    ),
+                ),
+                ("title", models.CharField(max_length=255)),
+                (
+                    "google_file_id",
+                    models.CharField(
+                        help_text="De unieke ID van het bestand op Google Drive",
+                        max_length=255,
+                        unique=True,
+                    ),
+                ),
+                (
+                    "file_type",
+                    models.CharField(
+                        choices=[
+                            ("document", "Google Doc (Bewerkbaar)"),
+                            ("spreadsheet", "Google Sheet (Bewerkbaar)"),
+                            ("pdf", "PDF (Alleen lezen)"),
+                            ("binary", "Overig bestand (Enkel downloaden)"),
+                        ],
+                        default="document",
+                        max_length=20,
+                    ),
+                ),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                (
+                    "company",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="documents",
+                        to="time_reg_web.company",
+                    ),
+                ),
             ],
         ),
         migrations.AddField(
-            model_name='divisies',
-            name='google_drive_folder_id',
-            field=models.CharField(blank=True, help_text='Optioneel: Google Drive map ID voor deze divisie', max_length=255, null=True),
+            model_name="divisies",
+            name="google_drive_folder_id",
+            field=models.CharField(
+                blank=True,
+                help_text="Optioneel: Google Drive map ID voor deze divisie",
+                max_length=255,
+                null=True,
+            ),
         ),
     ]

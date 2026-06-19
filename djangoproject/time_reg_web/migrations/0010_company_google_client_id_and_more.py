@@ -6,24 +6,29 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('time_reg_web', '0009_company_google_service_account_json_and_more'),
+        ("time_reg_web", "0009_company_google_service_account_json_and_more"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='company',
-            name='google_client_id',
-            field=models.CharField(blank=True, help_text='OAuth Client ID', max_length=255, null=True),
+            model_name="company",
+            name="google_client_id",
+            field=models.CharField(
+                blank=True, help_text="OAuth Client ID", max_length=255, null=True
+            ),
         ),
         migrations.AddField(
-            model_name='company',
-            name='google_client_secret',
-            field=models.CharField(blank=True, help_text='OAuth Client Secret', max_length=255, null=True),
+            model_name="company",
+            name="google_client_secret",
+            field=models.CharField(
+                blank=True, help_text="OAuth Client Secret", max_length=255, null=True
+            ),
         ),
         migrations.AddField(
-            model_name='company',
-            name='google_oauth_token',
-            field=models.JSONField(blank=True, help_text='OAuth tokens (Access & Refresh)', null=True),
+            model_name="company",
+            name="google_oauth_token",
+            field=models.JSONField(
+                blank=True, help_text="OAuth tokens (Access & Refresh)", null=True
+            ),
         ),
-
     ]

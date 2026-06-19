@@ -8,19 +8,27 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('time_reg_web', '0005_alter_timeregistry_end_time_and_more'),
+        ("time_reg_web", "0005_alter_timeregistry_end_time_and_more"),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='company',
-            name='members',
-            field=models.ManyToManyField(blank=True, related_name='companies', to=settings.AUTH_USER_MODEL),
+            model_name="company",
+            name="members",
+            field=models.ManyToManyField(
+                blank=True, related_name="companies", to=settings.AUTH_USER_MODEL
+            ),
         ),
         migrations.AlterField(
-            model_name='userprofile',
-            name='company',
-            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='active_users', to='time_reg_web.company'),
+            model_name="userprofile",
+            name="company",
+            field=models.ForeignKey(
+                blank=True,
+                null=True,
+                on_delete=django.db.models.deletion.SET_NULL,
+                related_name="active_users",
+                to="time_reg_web.company",
+            ),
         ),
     ]
