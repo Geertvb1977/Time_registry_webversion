@@ -187,7 +187,7 @@ class Command(BaseCommand):
             credentials = Credentials(
                 token=self.decrypt_value(token_data.get("access_token")),
                 refresh_token=self.decrypt_value(token_data.get("refresh_token")),
-                token_uri="https://oauth2.googleapis.com/token",
+                token_uri="https://oauth2.googleapis.com/token", # nosec B106
                 client_id=client_id,
                 client_secret=client_secret,
                 scopes=scopes,

@@ -594,7 +594,7 @@ class CompanyDetailView(LoginRequiredMixin, View):
                 company.google_client_id = client_id
 
                 # Sla client_secret alleen op als het geen gemaskeerde weergave is
-                if client_secret != "********":
+                if client_secret != "********": # nosec B105
                     company.google_client_secret = client_secret
 
                 company.save()
@@ -1067,7 +1067,7 @@ def google_settings_view(request):
             company.google_client_id = client_id
 
             # Voorkom dat we de gemaskeerde '********' weergave overschrijven in de database
-            if client_secret != "********":
+            if client_secret != "********": # nosec B105
                 company.google_client_secret = client_secret
 
             company.save()
@@ -1149,7 +1149,7 @@ def google_authorize_callback(request):
     redirect_uri = request.build_absolute_uri(reverse("eventaflow:google_callback"))
 
     # Wissel de code uit voor tokens
-    token_url = "https://oauth2.googleapis.com/token"
+    token_url = "https://oauth2.googleapis.com/token" # nosec B105
     payload = {
         "code": code,
         "client_id": company.google_client_id,
@@ -1159,7 +1159,8 @@ def google_authorize_callback(request):
     }
 
     try:
-        response = requests.post(token_url, data=payload)
+        # Provide a timeout to avoid hanging requests (Bandit B113)
+        response = requests.post(token_url, data=payload, timeout=10)
         response_data = response.json()
 
         if response.status_code == 200:
@@ -1173,7 +1174,10 @@ def google_authorize_callback(request):
             messages.error(request, f"Fout bij het ophalen van tokens: {error_desc}")
             return redirect("eventaflow:google_settings")
 
-    except Exception as e:
+    except requests.exceptions.Timeout:
+        messages.error(request, "Verzoek naar Google time-out. Probeer het later opnieuw.")
+        return redirect("eventaflow:google_settings")
+    except requests.exceptions.RequestException as e:
         messages.error(request, f"Fout tijdens de netwerkverbinding met Google: {e}")
         return redirect("eventaflow:dashboard/google_settings")
 

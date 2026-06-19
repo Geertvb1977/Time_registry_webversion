@@ -271,6 +271,9 @@ dev = [
     "black",
     "pylint",
     "flake8",
+	"bandit",
+	"safety",
+	"pip-audit",
 ]
 
 
@@ -279,7 +282,7 @@ Installeer ze met:
 bash
 Kopiëren
 
-uv add --dev isort black pylint flake8
+uv add --dev isort black pylint flake8 bandit safety pip-audit
 
 
 

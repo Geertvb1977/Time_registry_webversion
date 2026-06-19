@@ -6,9 +6,9 @@ readme = "README.md"
 requires-python = ">=3.14"
 dependencies = [
     "certifi>=2026.1.4",
-    "cryptography>=48.0.0",
+    "cryptography>=48.0.1",
     "decouple>=0.0.7",
-    "django>=6.0",
+    "django>=6.0.5",
     "django-q2>=1.9.0",
     "google-api-python-client>=2.197.0",
     "google-auth-httplib2>=0.4.0",
@@ -19,15 +19,18 @@ dependencies = [
     "openpyxl>=3.1.5",
     "psycopg>=3.3.2",
     "python-decouple>=3.8",
-    "python-dotenv>=1.2.1",
+    "python-dotenv>=1.2.2",
     "requests>=2.34.2",
 ]
 
 [dependency-groups]
 dev = [
+    "bandit>=1.9.4",
     "black>=26.5.1",
     "flake8>=7.3.0",
     "isort>=8.0.1",
+    "pip-audit>=2.10.1",
     "pylint>=4.0.6",
     "pylint-django>=2.7.0",
+    "safety>=3.8.1",
 ]

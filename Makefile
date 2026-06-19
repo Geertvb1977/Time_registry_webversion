@@ -36,6 +36,13 @@ help:
 	@echo "  make lint-black       - Alleen black"
 	@echo "  make lint-pylint      - Alleen pylint"
 	@echo "  make lint-flake8      - Alleen flake8"
+	@echo "  make lint-bandit      - Voer bandit beveiligingsanalyse uit"
+	@echo ""
+	@echo "🔒 Beveiliging:"
+	@echo "  make security-check   - Voer beveiligingschecks uit safety, bandit, pip-audit"
+	@echo "	 make safety-check     - Controleer afhankelijkheden op bekende kwetsbaarheden"
+	@echo "	 make bandit	       - Voer bandit beveiligingsanalyse uit"
+	@echo "	 make pip-audit		   - Controleer afhankelijkheden op bekende kwetsbaarheden met pip-audit"
 	@echo ""
 	@echo "🧹 Opschonen:"
 	@echo "  make clean            - Verwijder __pycache__, .pyc, etc."
@@ -100,7 +107,20 @@ lint-pylint:
 lint-flake8:
 	$(UV) run flake8 $(SRC_DIR) --max-line-length=99
 
+lint-bandit:
+	$(UV) run bandit -r . -ii -f json -o bandit_report.json
+
 format: lint-isort lint-black
+
+# --- Security checks ---
+security-check:
+	$(UV) run bandit -r . -ii -f json -o bandit_report.json safety check pip-audit
+
+safety:
+	$(UV) run safety check
+
+pip-audit:
+	$(UV) run pip-audit
 
 # --- Opschonen ---
 clean:
