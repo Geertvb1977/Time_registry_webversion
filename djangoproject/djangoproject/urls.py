@@ -18,7 +18,6 @@ Including another URLconf
 from django.contrib import admin
 from django.contrib.auth import views as auth_views
 from django.urls import include, path, reverse_lazy
-from time_reg_web import urls
 from time_reg_web.forms import TailwindPasswordResetForm
 
 urlpatterns = [

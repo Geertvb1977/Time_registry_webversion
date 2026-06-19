@@ -2,8 +2,10 @@
 """Example: fetch and pretty-print project status using the API token.
 
 Usage:
-  python3 scripts/fetch_project_status.py --host https://example.com --token THE_TOKEN --project 123
-  python3 scripts/fetch_project_status.py --host https://example.com --token THE_TOKEN --project 123 --header
+  python3 scripts/fetch_project_status.py
+  --host https://example.com --token THE_TOKEN --project 123
+  python3 scripts/fetch_project_status.py
+  --host https://example.com --token THE_TOKEN --project 123 --header
 
 Install dependency: `pip install requests`
 """

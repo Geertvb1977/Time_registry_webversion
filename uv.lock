@@ -573,6 +573,30 @@ wheels = [
 ]
 
 [[package]]
+name = "pylint-django"
+version = "2.7.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "pylint" },
+    { name = "pylint-plugin-utils" },
+]
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/e5/0d/d775fec0dde8ca5d20e9170a2ca332dfa21b77f7e7e47fc3ab9b2261773c/pylint_django-2.7.0-py3-none-any.whl", hash = "sha256:76ef7e7bbbcf7ee86adbb2beac0ffaa7232509a17bf4a488d81467a1bbaa215b", size = 42892, upload-time = "2026-01-01T11:17:04.292Z" },
+]
+
+[[package]]
+name = "pylint-plugin-utils"
+version = "0.9.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "pylint" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/73/85/24eaf5d0d078fc8799ae6d89faf326d6e4d27d862fc9a710a52ab07b7bb5/pylint_plugin_utils-0.9.0.tar.gz", hash = "sha256:5468d763878a18d5cc4db46eaffdda14313b043c962a263a7d78151b90132055", size = 10474, upload-time = "2025-06-24T07:14:00.534Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/5e/c9/a3b871b0b590c49e38884af6dab58ab9711053bd5c39b8899b72e367b9f6/pylint_plugin_utils-0.9.0-py3-none-any.whl", hash = "sha256:16e9b84e5326ba893a319a0323fcc8b4bcc9c71fc654fcabba0605596c673818", size = 11129, upload-time = "2025-06-24T07:13:58.993Z" },
+]
+
+[[package]]
 name = "pyparsing"
 version = "3.3.2"
 source = { registry = "https://pypi.org/simple" }
@@ -682,6 +706,7 @@ dev = [
     { name = "flake8" },
     { name = "isort" },
     { name = "pylint" },
+    { name = "pylint-django" },
 ]
 
 [package.metadata]
@@ -708,6 +733,7 @@ dev = [
     { name = "flake8", specifier = ">=7.3.0" },
     { name = "isort", specifier = ">=8.0.1" },
     { name = "pylint", specifier = ">=4.0.6" },
+    { name = "pylint-django", specifier = ">=2.7.0" },
 ]
 
 [[package]]

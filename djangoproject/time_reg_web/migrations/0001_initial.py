@@ -222,7 +222,8 @@ class Migration(migrations.Migration):
                     "is_company_admin",
                     models.BooleanField(
                         default=False,
-                        help_text="Kan deze gebruiker andere gebruikers toevoegen aan dit bedrijf?",
+                        help_text="Kan deze gebruiker andere gebruikers "
+                        "toevoegen aan dit bedrijf?",
                     ),
                 ),
                 (

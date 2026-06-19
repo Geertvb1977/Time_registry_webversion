@@ -2,12 +2,7 @@
 
 from django import forms
 from django.contrib.auth.forms import PasswordResetForm
-from django.contrib.auth.models import User
-from django.db import transaction
-from django.shortcuts import redirect, render
-from django.views import View
-
-from .models import Company, Divisies, Milstones, Todo, UserProfile
+from .models import Divisies, Milstones, Todo
 
 
 # 1. Het Formulier
@@ -44,7 +39,8 @@ class TailwindPasswordResetForm(PasswordResetForm):
         max_length=254,
         widget=forms.EmailInput(
             attrs={
-                "class": "block w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-blue-500 focus:border-blue-500 shadow-sm",
+                "class": "block w-full px-4 py-3 rounded-lg border border-gray-300"
+                "focus:ring-blue-500 focus:border-blue-500 shadow-sm",
                 "placeholder": "uw@email.be",
             }
         ),
@@ -71,44 +67,53 @@ class TodoForm(forms.ModelForm):
         widgets = {
             "customer_id": forms.Select(
                 attrs={
-                    "class": "w-full rounded-lg border border-gray-300 shadow-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500 py-3 px-4"
+                    "class": "w-full rounded-lg border border-gray-300 shadow-sm"
+                    "focus:ring-2 focus:ring-purple-500 focus:border-purple-500 py-3 px-4"
                 }
             ),
             "project_id": forms.Select(
                 attrs={
-                    "class": "w-full rounded-lg border border-gray-300 shadow-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500 py-3 px-4"
+                    "class": "w-full rounded-lg border border-gray-300 shadow-sm"
+                    "focus:ring-2 focus:ring-purple-500 focus:border-purple-500 py-3 px-4"
                 }
             ),
             "divisie": forms.Select(
                 attrs={
-                    "class": "w-full rounded-lg border border-gray-300 shadow-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500 py-3 px-4"
+                    "class": "w-full rounded-lg border border-gray-300 shadow-sm"
+                    "focus:ring-2 focus:ring-purple-500 focus:border-purple-500 py-3 px-4"
                 }
             ),
             "user": forms.Select(
                 attrs={
-                    "class": "w-full rounded-lg border border-gray-300 shadow-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500 py-3 px-4"
+                    "class": "w-full rounded-lg border border-gray-300 shadow-sm"
+                    "focus:ring-2 focus:ring-purple-500 focus:border-purple-500 py-3 px-4"
                 }
             ),
             "priority": forms.Select(
                 attrs={
-                    "class": "w-full rounded-lg border border-gray-300 shadow-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500 py-3 px-4"
+                    "class": "w-full rounded-lg border border-gray-300 shadow-sm"
+                    "focus:ring-2 focus:ring-purple-500 focus:border-purple-500 py-3 px-4"
                 }
             ),
             "title": forms.TextInput(
                 attrs={
-                    "class": "w-full rounded-lg border border-gray-300 shadow-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500 py-3 px-4",
+                    "class": "w-full rounded-lg border border-gray-300 shadow-sm"
+                    "focus:ring-2 focus:ring-purple-500 focus:border-purple-500 py-3 px-4",
                     "placeholder": "Bijv. Website Homepage Update",
                 }
             ),
             "due_date": forms.DateInput(
                 attrs={
                     "type": "date",
-                    "class": "w-full rounded-lg border border-gray-300 shadow-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500 py-3 px-4",
+                    "class": "w-full rounded-lg border border-gray-300 shadow-sm"
+                    "focus:ring-2 focus:ring-purple-500 focus:border-purple-500 py-3 px-4",
                 }
             ),
             "description": forms.Textarea(
                 attrs={
-                    "class": "w-full rounded-lg border border-gray-300 shadow-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500 py-3 px-4 resize-none",
+                    "class": "w-full rounded-lg border border-gray-300 shadow-sm"
+                    "focus:ring-2 focus:ring-purple-500"
+                    "focus:border-purple-500 py-3 px-4 resize-none",
                     "rows": 6,
                     "placeholder": "Detailleerde beschrijving van de taak...",
                 }
@@ -120,7 +125,8 @@ class TodoForm(forms.ModelForm):
             ),
             "milestone": forms.Select(
                 attrs={
-                    "class": "w-full rounded-lg border border-gray-300 shadow-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500 py-3 px-4"
+                    "class": "w-full rounded-lg border border-gray-300 shadow-sm"
+                    "focus:ring-2 focus:ring-purple-500 focus:border-purple-500 py-3 px-4"
                 }
             ),
         }
@@ -135,7 +141,8 @@ class DivisieForm(forms.ModelForm):
         widgets = {
             "divisie_name": forms.TextInput(
                 attrs={
-                    "class": "w-full rounded-lg border border-gray-300 shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 py-3 px-4",
+                    "class": "w-full rounded-lg border border-gray-300 shadow-sm"
+                    "focus:ring-2 focus:ring-blue-500 focus:border-blue-500 py-3 px-4",
                     "placeholder": "Bijv. Ontwikkeling, Marketing, Verkoop",
                 }
             )
@@ -158,29 +165,35 @@ class MilestoneForm(forms.ModelForm):
         widgets = {
             "project": forms.Select(
                 attrs={
-                    "class": "w-full rounded-lg border border-gray-300 shadow-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500 py-3 px-4"
+                    "class": "w-full rounded-lg border border-gray-300 shadow-sm"
+                    "focus:ring-2 focus:ring-purple-500 focus:border-purple-500 py-3 px-4"
                 }
             ),
             "divisie": forms.Select(
                 attrs={
-                    "class": "w-full rounded-lg border border-gray-300 shadow-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500 py-3 px-4"
+                    "class": "w-full rounded-lg border border-gray-300 shadow-sm"
+                    "focus:ring-2 focus:ring-purple-500 focus:border-purple-500 py-3 px-4"
                 }
             ),
             "title": forms.TextInput(
                 attrs={
-                    "class": "w-full rounded-lg border border-gray-300 shadow-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500 py-3 px-4",
+                    "class": "w-full rounded-lg border border-gray-300 shadow-sm"
+                    "focus:ring-2 focus:ring-purple-500 focus:border-purple-500 py-3 px-4",
                     "placeholder": "Bijv. Website Homepage Update",
                 }
             ),
             "due_date": forms.DateInput(
                 attrs={
                     "type": "date",
-                    "class": "w-full rounded-lg border border-gray-300 shadow-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500 py-3 px-4",
+                    "class": "w-full rounded-lg border border-gray-300 shadow-sm"
+                    "focus:ring-2 focus:ring-purple-500 focus:border-purple-500 py-3 px-4",
                 }
             ),
             "description": forms.Textarea(
                 attrs={
-                    "class": "w-full rounded-lg border border-gray-300 shadow-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500 py-3 px-4 resize-none",
+                    "class": "w-full rounded-lg border border-gray-300 shadow-sm"
+                    "focus:ring-2 focus:ring-purple-500"
+                    "focus:border-purple-500 py-3 px-4 resize-none",
                     "rows": 6,
                     "placeholder": "Detailleerde beschrijving van de taak...",
                 }

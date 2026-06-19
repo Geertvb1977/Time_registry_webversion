@@ -1,0 +1,19 @@
+[MASTER]
+load-plugins=pylint_django  # Installeer eerst: `uv add pylint-django`
+django-settings-module=$(PROJECT_NAME).settings
+
+[MESSAGES CONTROL]
+disable=
+    C0114,  # missing-module-docstring
+    C0115,  # missing-class-docstring
+    C0116,  # missing-function-docstring
+    E0401,  # unable to import (voor Django-modules)
+    R0901,  # too-many-ancestors (Django-models hebben vaak veel parents)
+    R0903,  # too-few-public-methods (voor Django Forms/Serializers)
+    W0613,  # unused-argument (bijv. `self` in Django methods)
+
+[FORMAT]
+max-line-length=99
+
+[DESIGN]
+max-parents=15  # Verhoog limiet voor Django-models

@@ -141,9 +141,6 @@ STATICFILES_DIRS = [
 # Authentication settings
 LOGIN_REDIRECT_URL = "eventaflow:select_company"
 LOGOUT_REDIRECT_URL = "/accounts/login/"
-# Na inloggen sturen we ze naar de selectie pagina.
-# De selectie pagina bepaalt zelf wel of ze door mogen naar dashboard (zie hieronder) of moeten kiezen.
-
 
 # Production security settings
 if not DEBUG:

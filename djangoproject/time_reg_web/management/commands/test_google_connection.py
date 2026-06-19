@@ -1,17 +1,12 @@
 import json
 import logging
-import os
 
-from cryptography.fernet import Fernet
 from django.core.management.base import BaseCommand
 from google.auth.transport.requests import Request
-from google.oauth2 import service_account
 from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
-from time_reg_web.models import (
-    Company,  # Pas de importnaam aan naar jouw app-naam indien nodig
-)
+from time_reg_web.models import Company
 
 logger = logging.getLogger(__name__)
 
@@ -25,7 +20,10 @@ logger = logging.getLogger(__name__)
 
 
 class Command(BaseCommand):
-    help = "Test de Google Drive & Docs API-verbinding via OAuth2 (ingevoerd door Company Admin) voor een bedrijf."
+    help = (
+        "Test de Google Drive & Docs API-verbinding via OAuth2 "
+        "(ingevoerd door Company Admin) voor een bedrijf."
+    )
 
     def add_arguments(self, parser):
         parser.add_argument(
@@ -36,7 +34,8 @@ class Command(BaseCommand):
         parser.add_argument(
             "--folder_id",
             type=str,
-            help="Optioneel: Het ID van de Google Drive map waarin testdocumenten gemaakt moeten worden.",
+            help="Optioneel: \
+                Het ID van de Google Drive map waarin testdocumenten gemaakt moeten worden.",
         )
 
     def decrypt_value(self, encrypted_value: str) -> str:
@@ -49,7 +48,7 @@ class Command(BaseCommand):
 
         # Voorbeeld van hoe je dit in productie activeert:
         # key = os.environ.get("FIELD_ENCRYPTION_KEY")
-        # if key and encrypted_value.startswith("gAAAA"):  # Fernet tokens beginnen meestal met gAAAA
+        # if key and encrypted_value.startswith("gAAAA"): Fernet tokens beginnen meestal met gAAAA
         #     f = Fernet(key.encode())
         #     return f.decrypt(encrypted_value.encode()).decode()
 
@@ -65,7 +64,8 @@ class Command(BaseCommand):
             if not companies.exists():
                 self.stdout.write(
                     self.style.ERROR(
-                        "[-] Er zijn geen bedrijven in de database gevonden. Voeg er eerst een toe."
+                        "[-] Er zijn geen bedrijven in de database gevonden. \
+                            Voeg er eerst een toe."
                     )
                 )
                 return
@@ -82,7 +82,8 @@ class Command(BaseCommand):
             while True:
                 try:
                     user_input = input(
-                        "\nVoer het ID in van het bedrijf dat je wilt testen (of 'q' om te stoppen): "
+                        "\nVoer het ID in van het bedrijf dat je wilt testen \
+                            (of 'q' om te stoppen): "
                     ).strip()
                     if user_input.lower() == "q":
                         self.stdout.write(self.style.WARNING("[!] Test geannuleerd."))
@@ -115,7 +116,8 @@ class Command(BaseCommand):
 
         self.stdout.write(
             self.style.SUCCESS(
-                f"\n[+] Starten met testen van OAuth2-verbinding voor bedrijf: {company.name} (ID: {company.id})"
+                f"\n[+] Starten met testen van OAuth2-verbinding voor bedrijf: \
+                    {company.name} (ID: {company.id})"
             )
         )
 
@@ -129,22 +131,26 @@ class Command(BaseCommand):
         if not client_id_raw or not client_secret_raw or not token_info_raw:
             self.stdout.write(
                 self.style.ERROR(
-                    "[-] FOUT: Handmatige OAuth2-velden ontbreken nog in je Company database-model!"
+                    "[-] FOUT: Handmatige OAuth2-velden ontbreken \
+                        nog in je Company database-model!"
                 )
             )
             self.stdout.write(
                 self.style.WARNING(
-                    "    Zorg ervoor dat de volgende velden op je Company-model staan en zijn ingevuld door de admin:"
+                    "    Zorg ervoor dat de volgende velden op je Company-model staan \
+                        en zijn ingevuld door de admin:"
                 )
             )
             self.stdout.write(
                 "    -> google_client_id = models.CharField(max_length=255, blank=True, null=True)"
             )
             self.stdout.write(
-                "    -> google_client_secret = models.CharField(max_length=255, blank=True, null=True)  # Versleuteld opslaan!"
+                "    -> google_client_secret = models.CharField\
+                (max_length=255, blank=True, null=True) # Versleuteld opslaan!"
             )
             self.stdout.write(
-                "    -> google_oauth_token = models.JSONField(blank=True, null=True)                  # Versleuteld opslaan!"
+                "    -> google_oauth_token = models.JSONField(blank=True, null=True)\
+                      # Versleuteld opslaan!"
             )
             return
 
@@ -156,7 +162,8 @@ class Command(BaseCommand):
             if isinstance(token_info_raw, str):
                 token_data = json.loads(self.decrypt_value(token_info_raw))
             elif isinstance(token_info_raw, dict):
-                # Als het een JSONField is, kan het al een dict zijn. We decrypten dan de specifieke tokens binnen de dict indien nodig.
+                # Als het een JSONField is, kan het al een dict zijn.
+                # We decrypten dan de specifieke tokens binnen de dict indien nodig.
                 token_data = token_info_raw
             else:
                 token_data = token_info_raw
@@ -195,7 +202,8 @@ class Command(BaseCommand):
                 )
                 credentials.refresh(Request())
 
-                # Sla de nieuwe access token op in de database (eventueel weer versleutelen in productie)
+                # Sla de nieuwe access token op in de database
+                # (eventueel weer versleutelen in productie)
                 token_data["access_token"] = credentials.token
                 company.google_oauth_token = token_data
                 company.save()
@@ -223,7 +231,7 @@ class Command(BaseCommand):
             files = results.get("files", [])
             self.stdout.write(
                 self.style.SUCCESS(
-                    f"    [v] Verbinding geslaagd! Bestanden in de Drive van de Admin:"
+                    "    [v] Verbinding geslaagd! Bestanden in de Drive van de Admin"
                 )
             )
             for f in files:
@@ -250,7 +258,8 @@ class Command(BaseCommand):
             test_folder_id = folder.get("id")
             self.stdout.write(
                 self.style.SUCCESS(
-                    f"    [v] Map succesvol aangemaakt onder het Admin-account! ID: {test_folder_id}"
+                    f"    [v] Map succesvol aangemaakt onder het "
+                    f"Admin-account! ID: {test_folder_id}"
                 )
             )
 
@@ -279,7 +288,8 @@ class Command(BaseCommand):
             doc_id = doc_file.get("id")
             self.stdout.write(
                 self.style.SUCCESS(
-                    f"    [v] Google Doc succesvol aangemaakt op de Drive van de Admin! ID: {doc_id}"
+                    f"    [v] Google Doc succesvol aangemaakt op de Drive "
+                    f"van de Admin! ID: {doc_id}"
                 )
             )
 
@@ -303,7 +313,8 @@ class Command(BaseCommand):
             sheet_id = sheet_file.get("id")
             self.stdout.write(
                 self.style.SUCCESS(
-                    f"    [v] Google Sheet succesvol aangemaakt op de Drive van de Admin! ID: {sheet_id}"
+                    f"    [v] Google Sheet succesvol aangemaakt op de Drive "
+                    f"van de Admin! ID: {sheet_id}"
                 )
             )
 

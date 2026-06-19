@@ -27,4 +27,5 @@ dev = [
     "flake8>=7.3.0",
     "isort>=8.0.1",
     "pylint>=4.0.6",
+    "pylint-django>=2.7.0",
 ]

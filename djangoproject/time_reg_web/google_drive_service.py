@@ -24,14 +24,16 @@ class GoogleDriveService:
             "https://www.googleapis.com/auth/documents",
         ]
 
-        # Haal de gegevens op uit de database (deze worden transparant gedecrypt door de model getters)
+        # Haal de gegevens op uit de database
+        # (deze worden transparant gedecrypt door de model getters)
         client_id = self.company.google_client_id
         client_secret = self.company.google_client_secret
         token_data = self.company.google_oauth_token
 
         if not client_id or not client_secret or not token_data:
             raise ValueError(
-                "Google Drive integratie is nog niet geconfigureerd of geautoriseerd voor dit bedrijf."
+                "Google Drive integratie is nog niet geconfigureerd"
+                "of geautoriseerd voor dit bedrijf."
             )
 
         # Bouw de Google Credentials structuur
@@ -68,7 +70,8 @@ class GoogleDriveService:
     ) -> str:
         """
         Maakt een nieuwe map aan op de Google Drive van de Admin.
-        Omdat de Admin de eigenaar is van de Drive, verbruikt dit uitsluitend de opslagquota van de Admin!
+        Omdat de Admin de eigenaar is van de Drive,
+        verbruikt dit uitsluitend de opslagquota van de Admin!
         """
         file_metadata = {"name": name, "mimeType": "application/vnd.google-apps.folder"}
 
@@ -99,7 +102,8 @@ class GoogleDriveService:
                 self.share_file_with_user(file_id=folder_id, email_address=member.email, role=role)
             else:
                 logger.warning(
-                    f"Lid {member.username} heeft geen e-mailadres geconfigureerd. Kan map niet delen."
+                    f"Lid {member.username} heeft geen e-mailadres geconfigureerd."
+                    "Kan map niet delen."
                 )
 
     def create_empty_google_doc(
@@ -211,7 +215,8 @@ class GoogleDriveService:
         """
         try:
             queries = [
-                "(mimeType='application/vnd.google-apps.document' or mimeType='application/vnd.google-apps.spreadsheet')",
+                "(mimeType='application/vnd.google-apps.document'"
+                "or mimeType='application/vnd.google-apps.spreadsheet')",
                 "trashed = false",
             ]
             if folder_id:

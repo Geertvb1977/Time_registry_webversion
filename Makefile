@@ -3,8 +3,8 @@ PYTHON = python3
 UV = uv
 MANAGE = $(PYTHON) manage.py
 DOCKER_COMPOSE = docker compose
-PROJECT_NAME = TIME_REGISTRY_WEBVERSION  	# Vervang door je Django-projectnaam
-SRC_DIR = djangoproject            			# Pas aan als je broncode elders staat
+PROJECT_NAME = time_reg_web
+SRC_DIR = djangoproject
 
 # Standaarddoel
 all: help
@@ -95,6 +95,7 @@ lint-black:
 
 lint-pylint:
 	$(UV) run pylint $(SRC_DIR) --max-line-length=99
+		--ignore=djangoproject/__init__.py
 
 lint-flake8:
 	$(UV) run flake8 $(SRC_DIR) --max-line-length=99

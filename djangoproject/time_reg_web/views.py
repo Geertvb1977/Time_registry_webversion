@@ -1,6 +1,5 @@
 """Views voor multi-tenant ondersteuning in de tijdregistratie webapplicatie."""
 
-import json
 import logging
 import secrets
 import urllib.parse
@@ -12,9 +11,9 @@ from django.contrib.auth import login, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.models import User
-from django.core.mail import EmailMultiAlternatives, send_mail
+from django.core.mail import EmailMultiAlternatives
 from django.db import transaction
-from django.db.models import Case, Count, IntegerField, Q, Sum, Value, When
+from django.db.models import Case, Count, IntegerField, Sum, Value, When
 from django.http import (
     HttpResponse,
     HttpResponseBadRequest,
@@ -31,7 +30,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.generic import CreateView, ListView, UpdateView
 from django.views.generic.base import RedirectView
 
-from .forms import DivisieForm, MilestoneForm, RegistrationForm, TodoForm
+from .forms import MilestoneForm, TodoForm
 from .google_drive_service import GoogleDriveService
 from .mixins import TenantObjectMixin
 from .models import (
@@ -164,20 +163,30 @@ class ProjectFormMixin:
 
         field_widget_attrs = {
             "customer": {
-                "class": "block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-xl shadow-sm focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all outline-none bg-white appearance-none",
+                "class": "block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-xl "
+                "shadow-sm focus:ring-2 focus:ring-green-500 focus:border-green-500 "
+                "transition-all outline-none bg-white appearance-none",
             },
             "project_name": {
-                "class": "block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-xl shadow-sm focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all outline-none",
+                "class": "block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-xl "
+                "shadow-sm focus:ring-2 focus:ring-green-500 focus:border-green-500 "
+                "transition-all outline-none",
                 "placeholder": "Bijv. Website Vernieuwing",
             },
             "start_date": {
-                "class": "block w-full px-4 py-3 border border-gray-300 rounded-xl shadow-sm focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all outline-none",
+                "class": "block w-full px-4 py-3 border border-gray-300 rounded-xl "
+                "shadow-sm focus:ring-2 focus:ring-green-500 focus:border-green-500 "
+                "transition-all outline-none",
             },
             "end_date": {
-                "class": "block w-full px-4 py-3 border border-gray-300 rounded-xl shadow-sm focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all outline-none",
+                "class": "block w-full px-4 py-3 border border-gray-300 rounded-xl "
+                "shadow-sm focus:ring-2 focus:ring-green-500 focus:border-green-500 "
+                "transition-all outline-none",
             },
             "project_description": {
-                "class": "block w-full px-4 py-3 border border-gray-300 rounded-xl shadow-sm focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all outline-none",
+                "class": "block w-full px-4 py-3 border border-gray-300 rounded-xl "
+                "shadow-sm focus:ring-2 focus:ring-green-500 focus:border-green-500 "
+                "transition-all outline-none",
                 "rows": "3",
                 "placeholder": "Korte omschrijving van de werkzaamheden...",
             },
@@ -392,16 +401,6 @@ class CompanySelectionView(LoginRequiredMixin, ListView):
     context_object_name = "companies"
 
     def get_queryset(self):
-        # We halen nu alleen de bedrijven op waar de user LID van is
-        return self.request.user.companies.all()
-
-
-class CompanySelectionView(LoginRequiredMixin, ListView):
-    model = Company
-    template_name = "companies/select_company.html"
-    context_object_name = "companies"
-
-    def get_queryset(self):
         return self.request.user.companies.all()
 
     def get_context_data(self, **kwargs):
@@ -437,7 +436,8 @@ class CompanyCreateView(LoginRequiredMixin, CreateView):
     def form_valid(self, form):
         try:
             with transaction.atomic():
-                # We halen de instance op van het formulier zonder deze direct naar de DB te schrijven
+                # We halen de instance op van het formulier
+                # zonder deze direct naar de DB te schrijven
                 # Dit voorkomt dat we een ongeldig formulier proberen te saven
                 self.object = form.save()
 
@@ -535,12 +535,14 @@ class CompanyDetailView(LoginRequiredMixin, View):
                         company.members.add(user_to_add)
                         messages.success(
                             request,
-                            f"{user_to_add.username} ({user_to_add.email}) is toegevoegd aan het bedrijf.",
+                            f"{user_to_add.username} ({user_to_add.email})"
+                            f" is toegevoegd aan het bedrijf.",
                         )
                 except User.DoesNotExist:
                     messages.error(
                         request,
-                        f"Geen gebruiker gevonden met e-mailadres '{email}'. Controleer het e-mailadres.",
+                        f"Geen gebruiker gevonden met e-mailadres '{email}'."
+                        f" Controleer het e-mailadres.",
                     )
 
         # 3. Medewerker verwijderen
@@ -598,7 +600,8 @@ class CompanyDetailView(LoginRequiredMixin, View):
                 company.save()
                 messages.success(
                     request,
-                    "Google OAuth credentials succesvol opgeslagen! Klik nu op de groene knop om de autorisatie te starten.",
+                    "Google OAuth credentials succesvol opgeslagen! "
+                    "Klik nu op de groene knop om de autorisatie te starten.",
                 )
             else:
                 messages.error(
@@ -714,7 +717,8 @@ class TodoListView(LoginRequiredMixin, View):
         form_instance = None
         edit_id = request.GET.get("edit")
         if edit_id:
-            # We filteren op company om te zorgen dat gebruikers geen taken van andere bedrijven kunnen editen
+            # We filteren op company om te zorgen dat gebruikers
+            # geen taken van andere bedrijven kunnen editen
             form_instance = get_object_or_404(Todo, id=edit_id, company=company)
 
         return {
@@ -783,205 +787,6 @@ def toggle_todo(request, todo_id):
 
 
 # 7. Google Docs Management View
-@login_required
-def google_docs_view(request):
-    """
-    Het hoofdscherm van je documentenbeheer, gekoppeld aan de divisie-mappen en
-    de dynamische iframe weergave.
-    """
-    company = request.user.profile.company
-    divisies = Divisies.objects.filter(company=company)
-    docs = GoogleDocument.objects.filter(company=company)
-
-    iframe_url = None
-
-    # Controleer of de OAuth configuratie compleet is
-    is_configured = bool(
-        company.google_client_id and company.google_client_secret and company.google_oauth_token
-    )
-
-    if is_configured:
-        try:
-            service = GoogleDriveService(company)
-        except Exception as e:
-            messages.error(request, f"Fout bij starten Google Drive koppeling: {e}")
-            service = None
-    else:
-        service = None
-
-    if request.method == "POST":
-        if not service:
-            messages.error(
-                request, "Google integratie is nog niet geconfigureerd of geautoriseerd."
-            )
-            return redirect("eventaflow:google_docs")
-
-        action = request.POST.get("action")
-
-        # Activeer de synchronisatieknop (Sync van Drive)
-        if action == "sync":
-            synced_count = 0
-
-            # 1. Haal bestanden op uit de hoofdmap (root) van de gekoppelde Drive
-            drive_files = service.list_files_from_drive(limit=50)
-            for f in drive_files:
-                file_id = f.get("id")
-                name = f.get("name")
-                mime_type = f.get("mimeType")
-
-                # Filter uitsluitend Google Docs en Sheets
-                if mime_type == "application/vnd.google-apps.document":
-                    file_type = "document"
-                elif mime_type == "application/vnd.google-apps.spreadsheet":
-                    file_type = "spreadsheet"
-                else:
-                    continue  # Sla overige bestandstypen over
-
-                # Importeer het bestand in de Eventaflow-database als het nog niet bestaat
-                obj, created = GoogleDocument.objects.get_or_create(
-                    google_file_id=file_id,
-                    defaults={"company": company, "title": name, "file_type": file_type},
-                )
-                if created:
-                    synced_count += 1
-
-            # 2. Haal ook alle bestanden op die binnen bestaande divisie-mappen staan
-            for divisie in divisies:
-                if divisie.google_drive_folder_id:
-                    folder_files = service.list_files_from_drive(
-                        limit=50, folder_id=divisie.google_drive_folder_id
-                    )
-                    for f in folder_files:
-                        file_id = f.get("id")
-                        name = f.get("name")
-                        mime_type = f.get("mimeType")
-
-                        if mime_type == "application/vnd.google-apps.document":
-                            file_type = "document"
-                        elif mime_type == "application/vnd.google-apps.spreadsheet":
-                            file_type = "spreadsheet"
-                        else:
-                            continue
-
-                        obj, created = GoogleDocument.objects.get_or_create(
-                            google_file_id=file_id,
-                            defaults={"company": company, "title": name, "file_type": file_type},
-                        )
-                        if created:
-                            synced_count += 1
-
-            messages.success(
-                request,
-                f"Synchronisatie voltooid! {synced_count} nieuwe documenten van Google Drive geïmporteerd.",
-            )
-            return redirect("eventaflow:google_docs")
-
-        # 1. Handmatig aanmaken en delen van een Divisie-map
-        elif action == "create_division_folder":
-            divisie_pk = request.POST.get("divisie_pk")
-            divisie = get_object_or_404(Divisies, pk=divisie_pk, company=company)
-
-            # Map wordt aangemaakt onder het account van de Admin (nooit meer quota-fouten!)
-            folder_id = service.create_folder(name=divisie.divisie_name, share_with_members=True)
-            if folder_id:
-                divisie.google_drive_folder_id = folder_id
-                divisie.save()
-                messages.success(
-                    request,
-                    f"Google Drive map met succes aangemaakt en gedeeld voor '{divisie.divisie_name}'.",
-                )
-            else:
-                messages.error(request, "Kan map niet aanmaken op Google Drive.")
-            return redirect("eventaflow:google_docs")
-
-        # 2. Document aanmaken binnen divisie-map (indien gekozen)
-        elif action == "create":
-            title = request.POST.get("title")
-            file_type = request.POST.get("file_type")
-            divisie_pk = request.POST.get("divisie_pk")
-
-            parent_folder_id = None
-            if divisie_pk:
-                divisie = get_object_or_404(Divisies, pk=divisie_pk, company=company)
-                parent_folder_id = divisie.google_drive_folder_id
-
-            google_file_id = service.create_empty_google_doc(
-                title=title, file_type=file_type, parent_folder_id=parent_folder_id
-            )
-
-            if google_file_id:
-                GoogleDocument.objects.create(
-                    company=company,
-                    title=title,
-                    google_file_id=google_file_id,
-                    file_type=file_type,
-                )
-                messages.success(request, f"Document '{title}' met succes aangemaakt.")
-            else:
-                messages.error(request, "Kan document niet aanmaken op Google Drive.")
-            return redirect("eventaflow:google_docs")
-
-        # 3. Uploaden & converteren binnen divisie-map
-        elif action == "upload":
-            uploaded_file = request.FILES.get("file")
-            upload_title = request.POST.get("upload_title") or uploaded_file.name
-            divisie_pk = request.POST.get("divisie_pk")
-
-            parent_folder_id = None
-            if divisie_pk:
-                divisie = get_object_or_404(Divisies, pk=divisie_pk, company=company)
-                parent_folder_id = divisie.google_drive_folder_id
-
-            google_file_id, file_type = service.upload_and_convert_file(
-                django_file=uploaded_file,
-                title=upload_title,
-                original_mime_type=uploaded_file.content_type,
-                convert_to_google=True,
-                parent_folder_id=parent_folder_id,
-            )
-
-            if google_file_id:
-                GoogleDocument.objects.create(
-                    company=company,
-                    title=upload_title,
-                    google_file_id=google_file_id,
-                    file_type=file_type,
-                )
-                messages.success(
-                    request, f"Bestand '{upload_title}' met succes geüpload en geconverteerd."
-                )
-            else:
-                messages.error(request, "Kan bestand niet uploaden naar Google Drive.")
-            return redirect("eventaflow:google_docs")
-
-        # 4. Open document in iframe en deel met actieve browser user
-        elif action == "open":
-            doc_pk = request.POST.get("doc_pk")
-            doc = get_object_or_404(GoogleDocument, pk=doc_pk, company=company)
-
-            # Geef de actuele ingelogde Django-gebruiker direct schrijfrechten
-            service.share_file_with_user(doc.google_file_id, request.user.email, role="writer")
-
-            # Genereer iframe-url
-            iframe_url = service.get_iframe_url(doc.google_file_id, doc.file_type, mode="edit")
-
-        # 5. Handmatig document delen met alle Company Members
-        elif action == "share":
-            doc_pk = request.POST.get("doc_pk")
-            doc = get_object_or_404(GoogleDocument, pk=doc_pk, company=company)
-
-            service.share_folder_with_company_members(doc.google_file_id, role="writer")
-            messages.success(request, f"Document '{doc.title}' gedeeld met alle groepsleden.")
-            return redirect("eventaflow:google_docs")
-
-    context = {
-        "divisies": divisies,
-        "docs": docs,
-        "iframe_url": iframe_url,
-        "is_configured": is_configured,
-        "is_admin": request.user.profile.is_company_admin or request.user.is_superuser,
-    }
-    return render(request, "google_docs.html", context)
 
 
 # 8. Milestones View (Vergelijkbaar met TodoListView maar dan voor Milestones)
@@ -1215,9 +1020,15 @@ def view_document(request, doc_id):
 
     # Bepaal de juiste Iframe URL op basis van het type bestand
     if document.file_type == "document":
-        embed_url = f"https://docs.google.com/document/d/{document.google_file_id}/edit?usp=embed_javascript"
+        embed_url = (
+            f"https://docs.google.com/document/d/{document.google_file_id}"
+            f"/edit?usp=embed_javascript"
+        )
     elif document.file_type == "spreadsheet":
-        embed_url = f"https://docs.google.com/spreadsheets/d/{document.google_file_id}/edit?usp=drivesdk&rm=minimal"
+        embed_url = (
+            f"https://docs.google.com/spreadsheets/d/{document.google_file_id}"
+            f"/edit?usp=drivesdk&rm=minimal"
+        )
     else:
         # Voor PDFs en overige binaire bestanden gebruiken we de universele Google Drive previewer
         embed_url = f"https://drive.google.com/file/d/{document.google_file_id}/preview"
@@ -1229,9 +1040,7 @@ def view_document(request, doc_id):
     return render(request, "docs/view_document.html", context)
 
 
-login_required
-
-
+@login_required
 def google_settings_view(request):
     """
     Instellingenpagina (gebaseerd op google_settings.html) waar gebruikers met de juiste
@@ -1574,147 +1383,6 @@ def generate_project_api_token_api(request, project_id):
     return JsonResponse({"status": "ok", "token": token.key})
 
 
-class CompanyDetailView(LoginRequiredMixin, View):
-    """
-    Class-Based View voor het beheren van de bedrijfsgegevens, medewerkers,
-    divisies en de Google OAuth2 API-credentials.
-    """
-
-    template_name = "companies/company_detail.html"
-
-    def get_context_data(self, company):
-        return {
-            "company": company,
-            "company_employees": UserProfile.objects.filter(company=company),
-            "divisies": Divisies.objects.filter(company=company),
-            "google_configured": bool(company.google_client_id and company.google_client_secret),
-            "google_authorized": bool(company.google_oauth_token),
-        }
-
-    def get(self, request):
-        company = request.user.profile.company
-        if not company:
-            messages.error(request, "Je bent niet gekoppeld aan een bedrijf.")
-            return redirect("eventaflow:dashboard")
-        return render(request, self.template_name, self.get_context_data(company))
-
-    def post(self, request):
-        company = request.user.profile.company
-        if not company:
-            messages.error(request, "Je bent niet gekoppeld aan een bedrijf.")
-            return redirect("eventaflow:dashboard")
-
-        is_admin = request.user.profile.is_company_admin or request.user.is_superuser
-        if not is_admin:
-            messages.error(request, "Je hebt geen rechten om deze actie uit te voeren.")
-            return render(request, self.template_name, self.get_context_data(company))
-
-        # 1. Bedrijfsnaam bijwerken
-        if "update_company" in request.POST:
-            company_name = request.POST.get("company_name", "").strip()
-            if not company_name:
-                messages.error(request, "Voer een bedrijfsnaam in.")
-            else:
-                company.name = company_name
-                company.save()
-                messages.success(request, "Bedrijfsnaam is bijgewerkt.")
-
-        # 2. Medewerker toevoegen via e-mail
-        elif "add_employee" in request.POST:
-            email = request.POST.get("employee_email", "").strip()
-            if not email:
-                messages.error(request, "Voer alstublieft een e-mailadres in.")
-            else:
-                try:
-                    user_to_add = User.objects.get(email__iexact=email)
-                    existing_profile = UserProfile.objects.filter(
-                        user=user_to_add, company=company
-                    ).first()
-                    if existing_profile:
-                        messages.warning(
-                            request, f"{user_to_add.username} is al lid van dit bedrijf."
-                        )
-                    else:
-                        profile, created = UserProfile.objects.get_or_create(user=user_to_add)
-                        profile.company = company
-                        profile.is_company_admin = False
-                        profile.save()
-                        company.members.add(user_to_add)
-                        messages.success(
-                            request, f"{user_to_add.username} is toegevoegd aan het bedrijf."
-                        )
-                except User.DoesNotExist:
-                    messages.error(request, f"Geen gebruiker gevonden met e-mailadres '{email}'.")
-
-        # 3. Medewerker verwijderen
-        elif "remove_employee" in request.POST:
-            employee_id = request.POST.get("remove_employee")
-            try:
-                profile = UserProfile.objects.get(id=employee_id, company=company)
-                user_name = profile.user.username
-                profile.delete()
-                messages.success(request, f"{user_name} is verwijderd uit het bedrijf.")
-            except UserProfile.DoesNotExist:
-                messages.error(request, "Medewerker niet gevonden.")
-
-        # 4. Divisie toevoegen of bewerken
-        elif "add_divisie" in request.POST:
-            divisie_name = request.POST.get("divisie_name", "").strip()
-            if not divisie_name:
-                messages.error(request, "Voer alstublieft een divisienaam in.")
-            else:
-                try:
-                    with transaction.atomic():
-                        if Divisies.objects.filter(
-                            company=company, divisie_name__iexact=divisie_name
-                        ).exists():
-                            messages.warning(request, f"Divisie '{divisie_name}' bestaat al.")
-                        else:
-                            Divisies.objects.create(divisie_name=divisie_name, company=company)
-                            messages.success(request, f"Divisie '{divisie_name}' is toegevoegd.")
-                except Exception as e:
-                    messages.error(request, f"Fout bij aanmaken divisie: {e}")
-
-        # 5. Divisie verwijderen
-        elif "remove_divisie" in request.POST:
-            divisie_id = request.POST.get("remove_divisie")
-            try:
-                divisie = Divisies.objects.get(id=divisie_id, company=company)
-                divisie_name = divisie.divisie_name
-                divisie.delete()
-                messages.success(request, f"Divisie '{divisie_name}' is verwijderd.")
-            except Divisies.DoesNotExist:
-                messages.error(request, "Divisie niet gevonden.")
-
-        # 6. Google OAuth Credentials opslaan
-        elif "update_google_credentials" in request.POST:
-            client_id = request.POST.get("google_client_id", "").strip()
-            client_secret = request.POST.get("google_client_secret", "").strip()
-
-            if client_id and client_secret:
-                company.google_client_id = client_id
-                if client_secret != "********":
-                    company.google_client_secret = client_secret
-                company.save()
-                messages.success(
-                    request, "Credentials opgeslagen! Klik nu op de groene koppelknop."
-                )
-            else:
-                messages.error(
-                    request, "Zowel het Client ID als het Client Secret zijn verplicht."
-                )
-
-        # 7. Google Credentials verwijderen
-        elif "remove_google_credentials" in request.POST:
-            company.google_client_id = None
-            company.google_client_secret = None
-            company.google_oauth_token = None
-            company.save()
-            messages.success(request, "Google Drive integratie succesvol verwijderd.")
-
-        return render(request, self.template_name, self.get_context_data(company))
-
-
 @login_required
 def google_docs_view(request):
     """
@@ -1736,7 +1404,8 @@ def google_docs_view(request):
             service = GoogleDriveService(company)
         except Exception as e:
             # Token Revocation / Intrekken opvangen:
-            # Als Google de tokens weigert, wissen we deze om fouten te voorkomen en zetten de app terug in "Ontkoppeld"
+            # Als Google de tokens weigert,
+            # wissen we deze om fouten te voorkomen en zetten de app terug in "Ontkoppeld"
             logger.error(f"Fout bij starten Google Drive koppeling (mogelijk ingetrokken): {e}")
             company.google_oauth_token = None
             company.save()
@@ -1748,7 +1417,8 @@ def google_docs_view(request):
             is_configured = False
 
     # DYNAMISCHE MAPPING IN HET GEHEUGEN:
-    # We lopen alle divisiemappen langs op Google Drive en mappen de lokale docs in-memory naar de juiste divisie-ID
+    # We lopen alle divisiemappen langs op Google Drive
+    # en mappen de lokale docs in-memory naar de juiste divisie-ID
     if service:
         # Initialiseer temp parameters op alle geladen docs
         for d in docs:
@@ -1783,7 +1453,8 @@ def google_docs_view(request):
         if action == "sync":
             synced_count = 0
 
-            # CORRECTIE 1: Haal ENKEL bestanden op die DIRECT in de hoofdmap (root) staan (voorkomt dupliceren in mappen)
+            # CORRECTIE 1: Haal ENKEL bestanden op die DIRECT in de hoofdmap (root) staan
+            # (voorkomt dupliceren in mappen)
             try:
                 drive_files = service.list_files_from_drive(limit=50, folder_id="root")
                 for f in drive_files:
@@ -1843,7 +1514,8 @@ def google_docs_view(request):
 
             messages.success(
                 request,
-                f"Synchronisatie voltooid! {synced_count} nieuwe documenten van Google Drive geïmporteerd.",
+                f"Synchronisatie voltooid! {synced_count} "
+                f"nieuwe documenten van Google Drive geïmporteerd.",
             )
             return redirect("eventaflow:google_docs")
 

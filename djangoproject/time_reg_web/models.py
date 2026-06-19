@@ -32,7 +32,8 @@ class CredentialEncryptor:
         if not key:
             logger.warning(
                 "FIELD_ENCRYPTION_KEY omgevingsvariabele ontbreekt! "
-                "Tijdelijke fallback sleutel wordt gebruikt. Credentials gaan verloren bij herstart!"
+                "Tijdelijke fallback sleutel wordt gebruikt. "
+                "Credentials gaan verloren bij herstart!"
             )
             # Fallback sleutel voor lokale ontwikkeling (veilig gecodeerd)
             key = "django_local_dev_secret_encryption_key_12345="
