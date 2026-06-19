@@ -16,11 +16,10 @@ Including another URLconf
 """
 
 from django.contrib import admin
-from django.urls import path, include
 from django.contrib.auth import views as auth_views
-from django.urls import reverse_lazy
-from time_reg_web.forms import TailwindPasswordResetForm
+from django.urls import include, path, reverse_lazy
 from time_reg_web import urls
+from time_reg_web.forms import TailwindPasswordResetForm
 
 urlpatterns = [
     path('admin/', admin.site.urls),

@@ -1,6 +1,7 @@
 """ URL-configuratie voor de time_reg_web app."""
 
 from django.urls import path
+
 from . import views
 
 # Omdat we de namespace in de include hebben gezet, hoeven we hier niets extra's te doen

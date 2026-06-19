@@ -1,7 +1,8 @@
 """Mixin voor multi-tenant support in Django views."""
 
-from django.shortcuts import redirect
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.shortcuts import redirect
+
 
 class TenantObjectMixin(LoginRequiredMixin):
     def dispatch(self, request, *args, **kwargs):

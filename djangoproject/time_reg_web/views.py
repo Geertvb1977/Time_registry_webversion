@@ -1,50 +1,52 @@
 """Views voor multi-tenant ondersteuning in de tijdregistratie webapplicatie."""
 
-import urllib.parse
-import requests
-import openpyxl
-import secrets
 import json
 import logging
+import secrets
+import urllib.parse
 
-from django.shortcuts import render, redirect, get_object_or_404
+import openpyxl
+import requests
 from django.contrib import messages
-from django.views import View
-from django.views.generic import ListView, CreateView, UpdateView
-from django.db import transaction
-from django.db.models import Count, Case, When, IntegerField, Sum, Q, Value
-from django.contrib.auth.models import User
-from django.contrib.auth.mixins import LoginRequiredMixin
+from django.contrib.auth import login, logout
 from django.contrib.auth.decorators import login_required
-from django.contrib.auth import logout, login
-from django.utils import timezone
-
-from django.http import HttpResponse, HttpResponseRedirect, HttpResponseBadRequest, JsonResponse, HttpResponseForbidden
-from django.urls import reverse_lazy, reverse
-from django.views.generic.base import RedirectView
-from django.core.mail import send_mail, EmailMultiAlternatives
+from django.contrib.auth.mixins import LoginRequiredMixin
+from django.contrib.auth.models import User
+from django.core.mail import EmailMultiAlternatives, send_mail
+from django.db import transaction
+from django.db.models import Case, Count, IntegerField, Q, Sum, Value, When
+from django.http import (
+    HttpResponse,
+    HttpResponseBadRequest,
+    HttpResponseForbidden,
+    HttpResponseRedirect,
+    JsonResponse,
+)
+from django.shortcuts import get_object_or_404, redirect, render
 from django.template.loader import render_to_string
+from django.urls import reverse, reverse_lazy
+from django.utils import timezone
+from django.views import View
 from django.views.decorators.csrf import csrf_exempt
+from django.views.generic import CreateView, ListView, UpdateView
+from django.views.generic.base import RedirectView
 
-from .models import UserProfile, Company, Divisies, GoogleDocument
+from .forms import DivisieForm, MilestoneForm, RegistrationForm, TodoForm
 from .google_drive_service import GoogleDriveService
-
-
+from .mixins import TenantObjectMixin
 from .models import (
+    APIToken,
+    APITokenUsage,
     Company,
-    UserProfile,
     Customer,
+    Divisies,
+    GoogleDocument,
+    Milstones,
     Project,
     TimeRegistry,
     Todo,
-    Divisies,
-    Milstones,
-    GoogleDocument,
-    APIToken,
-    APITokenUsage,
+    UserProfile,
 )
-from .mixins import TenantObjectMixin
-from .forms import RegistrationForm, TodoForm, DivisieForm, MilestoneForm
 
 logger = logging.getLogger(__name__)
 

@@ -3,17 +3,17 @@ Building multi-tenant support into the time registration web application.
 Each company (tenant) has its own set of
 users, customers, projects, and time entries.
 """
-import os
 import json
 import logging
-from django.db import models
-from django.db.models import Max
-from django.contrib.auth.models import User
-from django.db.models.signals import post_save
-from django.dispatch import receiver
+import os
 
 # We gebruiken de cryptography bibliotheek voor veilige opslag van de API credentials
 from cryptography.fernet import Fernet
+from django.contrib.auth.models import User
+from django.db import models
+from django.db.models import Max
+from django.db.models.signals import post_save
+from django.dispatch import receiver
 
 logger = logging.getLogger(__name__)
 

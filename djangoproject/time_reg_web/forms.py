@@ -1,13 +1,13 @@
 """Formulieren voor multi-tenant registratie in Django."""
 
 from django import forms
+from django.contrib.auth.forms import PasswordResetForm
 from django.contrib.auth.models import User
-from django.contrib.auth.forms import PasswordResetForm
 from django.db import transaction
-from django.shortcuts import render, redirect
+from django.shortcuts import redirect, render
 from django.views import View
-from django.contrib.auth.forms import PasswordResetForm
-from .models import Company, Milstones, UserProfile, Todo, Divisies
+
+from .models import Company, Divisies, Milstones, Todo, UserProfile
 
 
 # 1. Het Formulier

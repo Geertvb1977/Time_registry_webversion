@@ -2,16 +2,16 @@ import json
 import logging
 import os
 
+from cryptography.fernet import Fernet
 from django.core.management.base import BaseCommand
+from google.auth.transport.requests import Request
 from google.oauth2 import service_account
+from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
-from google.oauth2.credentials import Credentials
-from google.auth.transport.requests import Request
-from cryptography.fernet import Fernet
-
-from time_reg_web.models import Company  # Pas de importnaam aan naar jouw app-naam indien nodig
-
+from time_reg_web.models import (
+    Company,  # Pas de importnaam aan naar jouw app-naam indien nodig
+)
 
 logger = logging.getLogger(__name__)
 

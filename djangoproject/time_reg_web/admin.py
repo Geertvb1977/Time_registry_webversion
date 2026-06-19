@@ -1,7 +1,8 @@
 """ Register your models here."""
 
 from django.contrib import admin
-from .models import Company, UserProfile, Customer, Project, TimeRegistry
+
+from .models import Company, Customer, Project, TimeRegistry, UserProfile
 
 
 @admin.register(Company)
