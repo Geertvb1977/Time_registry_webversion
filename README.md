@@ -1,106 +1,44 @@
-# Time Registry Web Version
 
-A web-based time tracking and project management application built with Django.
 
-## Features
 
-- Time tracking with start/stop functionality
-- Project and customer management  
-- Data export to Excel
-- User authentication and company management
-- Responsive web interface with Tailwind CSS
 
-## Local Development
 
-### Prerequisites
+# Eventaflow.eu - Multi-Tenant Time & Project Management
 
-- Docker & Docker Compose
-- Python 3.12+ (for local development)
-- PostgreSQL (runs in Docker)
+[cite_start]Eventaflow.eu is een moderne, multi-tenant webapplicatie gebouwd met Django, specifiek ontworpen voor zelfstandigen en kleine teams[cite: 9, 11, 132]. [cite_start]Het platform combineert live start/stop-tijdsregistratie met uitgebreid projectbeheer via taken (todo's), divisies en milestones[cite: 10, 45, 207]. [cite_start]Dankzij de multi-tenant architectuur blijft de data van elk bedrijf strikt en veilig van elkaar gescheiden[cite: 132, 133].
 
-### Setup
+---
 
-1. Clone the repository:
-```bash
-git clone https://github.com/Geertvb1977/Time_registry_webversion.git
-cd Time_registry_webversion
-```
+## 🚀 Belangrijkste Functionaliteiten
 
-2. Create `.env` file from template:
-```bash
-cp .env.example .env
-```
+- [cite_start]**Multi-Tenant Architectuur:** Volledige dataseparatie op database- en view-niveau middels custom Django Mixins[cite: 132].
+- [cite_start]**Tijdsregistratie:** Live start/stop-tijdschrijfsysteem op de hoofdpagina met automatische urenberekening en Excel-export[cite: 15].
+- [cite_start]**Project- & Takenbeheer (Todo's):** Uitgebreid takenbeheer met prioriteiten, deadlines en toewijzing aan specifieke collega's[cite: 24, 26].
+- [cite_start]**Milestones & Divisies:** Projecten opsplitsen in duidelijke fasen (milestones) en organisatorische eenheden (divisies)[cite: 42, 207, 208].
+- [cite_start]**Beveiligde API & Externe Toegang:** Token-based, read-only REST API waarmee externe klanten zonder inlog de projectstatus kunnen raadplegen[cite: 58, 113, 114].
+- [cite_start]**Google Drive & Docs Integratie:** Gecentraliseerd documentbeheer per divisie via OAuth2 met transparante database-encryptie voor API-credentials[cite: 47, 51].
 
-3. Start development environment:
-```bash
-docker-compose up -d
-```
+---
 
-4. Run migrations:
-```bash
-docker-compose exec web python manage.py migrate
-```
+## 🛠️ Technische Architectuur & Tech Stack
 
-5. Access at `http://localhost:8000`
+- [cite_start]**Backend Framework:** Django 5.x & Django REST Framework (DRF) [cite: 9, 64]
+- [cite_start]**Pakketbeheer:** `uv` (Astromesh) voor deterministische en snelle dependency-resolving (`uv.lock`) [cite: 215]
+- [cite_start]**Database:** PostgreSQL 15 (met unieke oplopende ID's per tenant) [cite: 9, 132, 159]
+- [cite_start]**Containerisatie:** Docker & Docker Compose [cite: 215]
+- **Reverse Proxy / Ingress:** Traefik Proxy met automatische Let's Encrypt TLS/SSL-certificering
+- [cite_start]**Continuous Deployment:** Watchtower voor automatische container-updates bij nieuwe image pushes 
 
-## Production Deployment
+---
 
-See [DEPLOYMENT.md](DEPLOYMENT.md) for complete production deployment guide with Traefik reverse proxy and Let's Encrypt SSL.
+## 💻 Lokale Ontwikkelomgeving (Development)
 
-### Quick Start (Production)
+### Vereisten
+- Docker Desktop & Docker Compose
+- [cite_start]Python 3.12+ & `uv` (optioneel, voor lokale linting buiten Docker) [cite: 215]
 
-1. **Setup .env** - Copy `.env.example` to `.env` and configure:
-   - `DEBUG=False`
-   - `CSRF_TRUSTED_ORIGINS=https://yourdomain.com`
-   - `ALLOWED_HOSTS=yourdomain.com`
-   - Strong `DJANGO_SECRET_KEY` and `POSTGRES_PASSWORD`
-
-2. **Deploy** on server:
-```bash
-cd /opt/Time_registry_webversion
-git pull
-docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d
-docker-compose exec web python manage.py migrate
-```
-
-3. **Traefik** automatically handles:
-   - HTTP → HTTPS redirects
-   - SSL certificates via Let's Encrypt
-   - Reverse proxying to Django
-
-## Architecture
-
-```
-Internet (HTTPS)
-    ↓
-Traefik (Reverse Proxy + SSL)
-    ↓
-Django (Gunicorn on port 8000)
-    ↓
-PostgreSQL Database
-```
-
-## Configuration
-
-All settings use environment variables from `.env`:
-
-| Variable | Default | Purpose |
-|----------|---------|---------|
-| `DEBUG` | False | Django debug mode |
-| `POSTGRES_DB` | time_registry | Database name |
-| `POSTGRES_USER` | time_registry_user | Database user |
-| `POSTGRES_PASSWORD` | - | Database password (required) |
-| `DJANGO_SECRET_KEY` | - | Django secret key (required) |
-| `CSRF_TRUSTED_ORIGINS` | - | Allowed CSRF origins (production) |
-| `ALLOWED_HOSTS` | - | Allowed hostnames (production) |
-
-## Security Notes
-
-- `.env` is not committed (contains secrets)
-- Use strong passwords and secret keys in production
-- DEBUG must be False in production
-- SSL certificates are auto-renewed by Let's Encrypt
-
-## License
-
-[Your License]
+### Quick Start
+1. **Kloon de repository:**
+   ```bash
+   git clone [https://github.com/Geertvb1977/Time_registry_webversion.git](https://github.com/Geertvb1977/Time_registry_webversion.git)
+   cd Time_registry_webversion

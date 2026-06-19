@@ -473,9 +473,6 @@ class CompanyCreateView(LoginRequiredMixin, CreateView):
         return super().form_invalid(form)
 
 
-# logger = logging.getLogger(__name__)
-
-
 class CompanyDetailView(LoginRequiredMixin, View):
     template_name = "companies/company_detail.html"
 
