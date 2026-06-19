@@ -8,6 +8,11 @@ import openpyxl
 import requests
 from django.contrib import messages
 from django.contrib.auth import login, logout
+from django.contrib import messages
+from django.contrib.auth import password_validation
+from django.core.exceptions import ValidationError
+from django.contrib.auth.views import LoginView as DjangoLoginView
+from django.shortcuts import redirect
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.models import User
@@ -362,22 +367,24 @@ class RegisterUserView(View):
         password_confirm = request.POST.get("password_confirm")
 
         # Basis validatie
+        def render_reg_error(message):
+            ctx = {"reg_error": message, "reg_username": username or "", "reg_email": email or ""}
+            return render(request, self.template_name, ctx)
+
         if not all([username, email, password, password_confirm]):
-            return render(request, self.template_name, {"reg_error": "Vul alle velden in."})
+            return render_reg_error("Vul alle velden in.")
 
         if password != password_confirm:
-            return render(
-                request,
-                self.template_name,
-                {"reg_error": "Wachtwoorden komen niet overeen."},
-            )
+            return render_reg_error("Wachtwoorden komen niet overeen.")
 
         if User.objects.filter(username=username).exists():
-            return render(
-                request,
-                self.template_name,
-                {"reg_error": "Deze gebruikersnaam is al bezet."},
-            )
+            return render_reg_error("Deze gebruikersnaam is al bezet.")
+
+        # Validate password against Django's password validators
+        try:
+            password_validation.validate_password(password, user=None)
+        except ValidationError as exc:
+            return render_reg_error("Wachtwoord voldoet niet: " + "; ".join(exc.messages))
 
         try:
             with transaction.atomic():
@@ -392,7 +399,7 @@ class RegisterUserView(View):
             # 4. Stuur door naar de bedrijfsselectie (die zal redirecten naar create_company)
             return redirect("eventaflow:select_company")
         except Exception as e:
-            return render(request, self.template_name, {"reg_error": f"Technisch probleem: {e}"})
+            return render_reg_error(f"Technisch probleem: {e}")
 
 
 class CompanySelectionView(LoginRequiredMixin, ListView):
@@ -628,6 +635,32 @@ class LoginView(RedirectView):
     def get(self, request, *args, **kwargs):
         logout(request)
         return super().get(request, *args, **kwargs)
+
+
+class AuthLoginView(DjangoLoginView):
+    """Custom LoginView that checks the user's raw password against the
+    `AUTH_PASSWORD_VALIDATORS` and warns the user if it doesn't pass.
+
+    This does not block login by default; it shows a warning and redirects
+    users to change their password if desired.
+    """
+    template_name = "registration/login.html"
+
+    def form_valid(self, form):
+        user = form.get_user()
+        raw_password = form.cleaned_data.get("password")
+        try:
+            password_validation.validate_password(raw_password, user=user)
+        except ValidationError as exc:
+            # Show a non-blocking warning and offer password change
+            messages.warning(
+                self.request,
+                (
+                    "Je wachtwoord voldoet niet aan de huidige veiligheidsregels. "
+                    "Overweeg het te wijzigen via 'Wachtwoord vergeten' of je profielinstellingen."
+                ),
+            )
+        return super().form_valid(form)
 
 
 # 1.1 View om de timer te starten

@@ -17,6 +17,7 @@ Including another URLconf
 
 from django.contrib import admin
 from django.contrib.auth import views as auth_views
+from time_reg_web.views import AuthLoginView
 from django.urls import include, path, reverse_lazy
 from time_reg_web.forms import TailwindPasswordResetForm
 
@@ -25,7 +26,7 @@ urlpatterns = [
     # Authenticatie (Centraal beheerd)
     path(
         "accounts/login/",
-        auth_views.LoginView.as_view(template_name="registration/login.html"),
+        AuthLoginView.as_view(),
         name="login",
     ),
     path("accounts/logout/", auth_views.LogoutView.as_view(), name="logout"),
